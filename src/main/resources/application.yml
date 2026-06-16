@@ -1,0 +1,26 @@
+spring:
+  application:
+    name: personal-router
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:personalrouter}
+    username: ${DB_USERNAME:personalrouter}
+    password: ${DB_PASSWORD:personalrouter}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+    show-sql: false
+  flyway:
+    enabled: true
+
+ors:
+  api:
+    base-url: https://api.openrouteservice.org
+    key: ${ORS_API_KEY}
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+  api-docs:
+    path: /v3/api-docs

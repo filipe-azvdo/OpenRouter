@@ -1,0 +1,11 @@
+# Copie este arquivo para application-local.yml e preencha com seus valores reais.
+# application-local.yml está no .gitignore — nunca o commite.
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/personalrouter
+    username: personalrouter
+    password: personalrouter
+
+ors:
+  api:
+    key: <sua-chave-aqui>
