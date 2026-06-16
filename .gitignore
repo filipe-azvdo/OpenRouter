@@ -27,3 +27,6 @@ application-local.yml
 **/application-local.yml
 .env
 *.env
+
+# Git worktrees
+.worktrees/
