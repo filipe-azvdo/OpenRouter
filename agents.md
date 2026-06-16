@@ -105,14 +105,15 @@ Regras:
 - Mensagens de commit devem seguir o padrão **Conventional Commits**, concatenado com o título da tarefa em desenvolvimento:
 
   ```
-  <tipo>: <descrição da tarefa>
+  <tipo>: <numero do card> <descrição da tarefa>
   ```
 
   Exemplo:
   ```
-  feat: Desenvolvimento de integração de pagamento com Stripe
+  feat: KAN-1 Desenvolvimento de integração de pagamento com Stripe
   ```
 
   Tipos válidos: `feat`, `fix`, `chore`, `refactor`, `test`, `docs`, `perf`, `build`, `ci`.
 
-- Utilizar commits lineares, um unico commit por feature e ao realizar o merge utilizar a opção de rebase and merge, para nao gerar o merge commmit
+- Utilizar commits lineares, um unico commit por feature
+- Ao final de cada tarefa abrir um PR para a master
