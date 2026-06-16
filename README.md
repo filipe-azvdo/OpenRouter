@@ -117,4 +117,4 @@ Os testes de integração utilizam **Testcontainers** (requer Docker) e as chama
 
 ## Licença
 
-Uso pessoal.
+MIT.
