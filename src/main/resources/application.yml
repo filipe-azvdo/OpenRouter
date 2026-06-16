@@ -2,10 +2,25 @@ spring:
   application:
     name: personal-router
   datasource:
-    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:personalrouter}
-    username: ${DB_USERNAME:personalrouter}
-    password: ${DB_PASSWORD:personalrouter}
+    url: jdbc:postgresql://${DB_HOST:db.prisma.io}:${DB_PORT:5432}/${DB_NAME:postgres}?sslmode=require
+    username: ${DB_USERNAME:525c430e011f63f61133e141bdee4566724f54dd6e9d70c8de66cf54a8f96932}
+    password: ${DB_PASSWORD}
     driver-class-name: org.postgresql.Driver
+    hikari:
+      pool-name: prisma-pg-pool
+      # Pool fixo e enxuto: min = max evita churn (recomendação do autor do Hikari)
+      maximum-pool-size: 10
+      minimum-idle: 10
+      # Recicla a conexão MUITO antes do Prisma matar por ociosidade (30 min)
+      max-lifetime: 1500000          # 25 min
+      # Mantém viva / detecta conexão morta antes de entregar pro app
+      keepalive-time: 300000         # 5 min
+      # Tempo esperando uma conexão livre do pool
+      connection-timeout: 30000      # 30 s
+      # Hikari valida sozinho via JDBC4 isValid(); validation-timeout é o teto
+      validation-timeout: 5000
+      # Detecta vazamento de conexão (conexão não devolvida) — útil em fintech
+      leak-detection-threshold: 60000
   jpa:
     hibernate:
       ddl-auto: validate

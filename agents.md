@@ -4,7 +4,7 @@ Este documento define as regras e padrões de desenvolvimento para o projeto **p
 
 ## 1. Stack Tecnológica
 
-- **Linguagem:** Java 21
+- **Linguagem:** Java 21 (ver rules jdk-config.mdc)
 - **Framework:** Spring Boot 3.x
 - **Build tool:** Maven
 - **Persistência:** Spring Data JPA + PostgreSQL
@@ -114,3 +114,5 @@ Regras:
   ```
 
   Tipos válidos: `feat`, `fix`, `chore`, `refactor`, `test`, `docs`, `perf`, `build`, `ci`.
+
+- Utilizar commits lineares, um unico commit por feature e ao realizar o merge utilizar a opção de rebase and merge, para nao gerar o merge commmit
