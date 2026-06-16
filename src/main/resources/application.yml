@@ -18,6 +18,16 @@ ors:
   api:
     base-url: https://api.openrouteservice.org
     key: ${ORS_API_KEY}
+    connect-timeout-ms: 3000
+    read-timeout-ms: 10000
+    retry:
+      max-attempts: 3
+      period-ms: 200
+      max-period-ms: 1000
+
+logging:
+  level:
+    com.personalrouter.client.OpenRouteServiceClient: DEBUG
 
 springdoc:
   swagger-ui:
