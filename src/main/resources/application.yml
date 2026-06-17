@@ -28,6 +28,9 @@ spring:
     show-sql: false
   flyway:
     enabled: true
+  mvc:
+    problemdetails:
+      enabled: true
 
 ors:
   api:
