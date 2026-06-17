@@ -3,12 +3,14 @@ package com.personalrouter.client;
 import com.github.tomakehurst.wiremock.junit5.WireMockExtension;
 import com.personalrouter.client.dto.OrsDirectionsResponse;
 import com.personalrouter.dto.Coordinate;
+import com.personalrouter.repository.PlannedRouteRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import java.util.List;
 
@@ -43,6 +45,10 @@ class OpenRouteServiceClientWireMockTest {
 
     @Autowired
     private OpenRouteServiceGateway gateway;
+
+    // JPA está excluído neste teste; o RouteServiceImpl (component-scanned) precisa do repositório.
+    @MockitoBean
+    private PlannedRouteRepository plannedRouteRepository;
 
     @Test
     void getDirections_happyPath_deserializesResponseCorrectly() throws Exception {
