@@ -85,7 +85,14 @@ mvn verify
 mvn spring-boot:run -Dspring-boot.run.profiles=local
 ```
 
-A documentação Swagger estará disponível em: `http://localhost:8080/swagger-ui.html`
+## Documentação da API
+
+Com a aplicação no ar, acesse:
+
+| Interface | URL |
+|---|---|
+| Swagger UI | [http://localhost:8080/swagger-ui.html](http://localhost:8080/swagger-ui.html) |
+| OpenAPI JSON | [http://localhost:8080/v3/api-docs](http://localhost:8080/v3/api-docs) |
 
 ## Testes
 
@@ -105,7 +112,10 @@ Os testes de integração utilizam **Testcontainers** (requer Docker) e as chama
 |---|---|---|
 | Fase 1 | Setup do projeto (dependências + configuração) | Concluída |
 | Fase 2 | Feign Client — OpenRouteServiceClient | Concluída |
-| Fase 3 | Controller, Service e persistência de rotas | Em desenvolvimento |
+| Fase 3 | RouteService, mappers e persistência de rotas planejadas | Concluída |
+| Fase 4 | RouteController + endpoints REST | Concluída |
+| Fase 5 | Entidades JPA, repositório e migration Flyway | Concluída |
+| Fase 6 | Testes (unitários + integração) + gate JaCoCo 80% | Concluída |
 
 ## Roadmap (V2+)
 
