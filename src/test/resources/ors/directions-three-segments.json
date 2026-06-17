@@ -1,0 +1,25 @@
+{
+  "routes": [
+    {
+      "summary": {
+        "distance": 3000.0,
+        "duration": 600.0
+      },
+      "geometry": "threeSegmentGeometry",
+      "segments": [
+        {
+          "distance": 1000.0,
+          "duration": 200.0
+        },
+        {
+          "distance": 1000.0,
+          "duration": 200.0
+        },
+        {
+          "distance": 1000.0,
+          "duration": 200.0
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,17 @@
+{
+  "routes": [
+    {
+      "summary": {
+        "distance": 950.0,
+        "duration": 120.0
+      },
+      "geometry": "singleSegmentGeometry",
+      "segments": [
+        {
+          "distance": 950.0,
+          "duration": 120.0
+        }
+      ]
+    }
+  ]
+}
