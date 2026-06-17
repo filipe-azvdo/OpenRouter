@@ -116,4 +116,4 @@ Regras:
   Tipos válidos: `feat`, `fix`, `chore`, `refactor`, `test`, `docs`, `perf`, `build`, `ci`.
 
 - Utilizar commits lineares, um unico commit por feature
-- Ao final de cada tarefa realizar o rebase and merge para a master
+- Ao final de cada tarefa abrir um PR para a master
