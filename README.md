@@ -20,7 +20,7 @@ A integração com o OpenRouteService é feita via **Feign Client**, com tratame
 | Migrations | Flyway |
 | Mapeamento | MapStruct 1.6.3 |
 | Documentação | SpringDoc OpenAPI (Swagger UI) |
-| Testes | JUnit 5 + Testcontainers + WireMock |
+| Testes | JUnit 5 + Testcontainers + H2 + WireMock |
 | Cobertura | JaCoCo (mínimo 80%) |
 | Estilo | Google Java Style Guide (Checkstyle) |
 
@@ -104,7 +104,25 @@ mvn test
 mvn verify
 ```
 
-Os testes de integração utilizam **Testcontainers** (requer Docker) e as chamadas ao OpenRouteService são mockadas com **WireMock**.
+Os testes de integração mocam as chamadas ao OpenRouteService com **WireMock** e validam a camada de persistência em **dois modos**, selecionados automaticamente conforme a disponibilidade de Docker.
+
+### Validação da camada de persistência (dual-mode)
+
+A validação de banco (migration Flyway + mapeamento JPA) roda em **dois modos**, selecionados
+automaticamente conforme a disponibilidade de Docker — **sem skip**:
+
+| Ambiente | Datasource | Papel |
+|---|---|---|
+| Com Docker | PostgreSQL 16 via Testcontainers | Autoridade de fidelidade |
+| Sem Docker | H2 em `MODE=PostgreSQL` | Net de conveniência local |
+
+Em ambos, o Flyway aplica `V1__create_planned_route.sql` e `ddl-auto=validate` confere o contrato
+schema ↔ entidades.
+
+> ⚠️ **Ressalva:** o H2 é um net de conveniência que valida schema/mapeamento e o round-trip
+> básico — **não** substitui a fidelidade do Postgres. Recursos Postgres-only (`JSONB`, arrays,
+> tipos geográficos) não são cobertos pelo H2; o caminho Testcontainers/Postgres continua sendo a
+> referência de verdade.
 
 ## Status do Projeto
 
@@ -116,6 +134,7 @@ Os testes de integração utilizam **Testcontainers** (requer Docker) e as chama
 | Fase 4 | RouteController + endpoints REST | Concluída |
 | Fase 5 | Entidades JPA, repositório e migration Flyway | Concluída |
 | Fase 6 | Testes (unitários + integração) + gate JaCoCo 80% | Concluída |
+| Fase 7 | Estratégia dual-mode de persistência (Testcontainers + H2 fallback) | Concluída |
 
 ## Roadmap (V2+)
 
