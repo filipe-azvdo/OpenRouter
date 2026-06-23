@@ -104,6 +104,20 @@ class RouteServiceImplTest {
     }
 
     @Test
+    void planRoute_drivingHgvProfile_callsGatewayWithHgvProfile() {
+        RoutePlanRequest request = new RoutePlanRequest("driving-hgv", origin, destination, null, null);
+        RouteResultDto expected = new RouteResultDto("driving-hgv", 100L, 60L, "geo", List.of());
+        when(gateway.getDirections(eq("driving-hgv"), anyList())).thenReturn(singleRouteResponse());
+        when(mapper.toRouteResult(any(), eq("driving-hgv"), anyList())).thenReturn(expected);
+
+        RouteResultDto result = service.planRoute(request);
+
+        assertThat(result).isSameAs(expected);
+        assertThat(result.profile()).isEqualTo("driving-hgv");
+        verify(gateway).getDirections(eq("driving-hgv"), anyList());
+    }
+
+    @Test
     void planRoute_emptyRoutes_throwsRouteCalculationException() {
         RoutePlanRequest request = new RoutePlanRequest("driving-car", origin, destination, null, null);
         when(gateway.getDirections(any(), anyList())).thenReturn(new OrsDirectionsResponse(List.of()));

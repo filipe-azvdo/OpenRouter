@@ -48,7 +48,8 @@ class RouteApiIntegrationTest {
 
     private static final String BASE_URL = "/api/v1/routes";
     private static final String PLAN_URL = BASE_URL + "/plan";
-    private static final String ORS_PATH = "/v2/directions/driving-car";
+    private static final String ORS_CAR_PATH = "/v2/directions/driving-car";
+    private static final String ORS_HGV_PATH = "/v2/directions/driving-hgv";
 
     @Container
     @ServiceConnection
@@ -83,7 +84,15 @@ class RouteApiIntegrationTest {
     // -----------------------------------------------------------------------
 
     private void stubOrs(int status, String body) {
-        wireMock.stubFor(WireMock.post(urlEqualTo(ORS_PATH))
+        stubOrs(ORS_CAR_PATH, status, body);
+    }
+
+    private void stubOrsHgv(int status, String body) {
+        stubOrs(ORS_HGV_PATH, status, body);
+    }
+
+    private void stubOrs(String path, int status, String body) {
+        wireMock.stubFor(WireMock.post(urlEqualTo(path))
                 .willReturn(aResponse()
                         .withStatus(status)
                         .withHeader("Content-Type", "application/json")
@@ -101,6 +110,17 @@ class RouteApiIntegrationTest {
     private static String bodyNoStops() {
         return """
             {
+              "origin":      {"lat": -23.5505, "lon": -46.6333, "label": "São Paulo"},
+              "destination": {"lat": -22.9068, "lon": -43.1729, "label": "Rio de Janeiro"}
+            }
+            """;
+    }
+
+    /** Corpo válido A→B com perfil driving-hgv. */
+    private static String bodyHgvNoStops() {
+        return """
+            {
+              "profile":     "driving-hgv",
               "origin":      {"lat": -23.5505, "lon": -46.6333, "label": "São Paulo"},
               "destination": {"lat": -22.9068, "lon": -43.1729, "label": "Rio de Janeiro"}
             }
@@ -193,6 +213,38 @@ class RouteApiIntegrationTest {
         mockMvc.perform(get(BASE_URL + "/{id}", id))
             .andExpect(status().isNotFound())
             .andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON));
+    }
+
+    // -----------------------------------------------------------------------
+    // Cenário: rota driving-hgv → calcular, salvar, recuperar com perfil persistido
+    // -----------------------------------------------------------------------
+
+    @Test
+    void fluxoDrivingHgv_calcularSalvarRecuperar_persistePerfil() throws Exception {
+        stubOrsHgv(200, fixture("directions-single-segment.json"));
+
+        // Plan → 200 com perfil driving-hgv
+        mockMvc.perform(post(PLAN_URL)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(bodyHgvNoStops()))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.profile").value("driving-hgv"));
+
+        // Create → 201, persiste com driving-hgv
+        MvcResult created = mockMvc.perform(post(BASE_URL)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(bodyHgvNoStops()))
+            .andExpect(status().isCreated())
+            .andExpect(jsonPath("$.profile").value("driving-hgv"))
+            .andReturn();
+
+        String id = objectMapper.readTree(created.getResponse().getContentAsString())
+                .get("id").asText();
+
+        // GET → 200 com perfil driving-hgv persistido
+        mockMvc.perform(get(BASE_URL + "/{id}", id))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.profile").value("driving-hgv"));
     }
 
     // -----------------------------------------------------------------------

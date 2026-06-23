@@ -41,6 +41,17 @@ dto/          # Objetos de transferência (Coordinate, request/response)
 exception/    # Exceções de domínio (quota, indisponibilidade)
 ```
 
+## Perfis de Transporte
+
+| Perfil | Descrição | Default |
+|---|---|---|
+| `driving-car` | Automóvel | Sim |
+| `driving-hgv` | Caminhão (Heavy Goods Vehicle) | Não |
+
+O campo `profile` é opcional no request — quando omitido, assume `driving-car`.
+
+> ⚠️ **V1:** o perfil `driving-hgv` utiliza os defaults do OpenRouteService, sem restrições de veículo (peso, altura, cargas perigosas). Parâmetros de veículo pesado (`options.profile_params`) ficam para V2.
+
 ## Pré-requisitos
 
 - Java 21 (Amazon Corretto recomendado)
@@ -135,9 +146,11 @@ schema ↔ entidades.
 | Fase 5 | Entidades JPA, repositório e migration Flyway | Concluída |
 | Fase 6 | Testes (unitários + integração) + gate JaCoCo 80% | Concluída |
 | Fase 7 | Estratégia dual-mode de persistência (Testcontainers + H2 fallback) | Concluída |
+| Fase 8 | Perfil de transporte caminhão (`driving-hgv`) | Concluída |
 
 ## Roadmap (V2+)
 
+- Restrições de veículo pesado para `driving-hgv` (peso, altura, cargas perigosas)
 - Autenticação JWT para suporte multi-usuário
 - Perfis de transporte adicionais (bicicleta, a pé)
 - Otimização de ordem de waypoints (problema do caixeiro-viajante)

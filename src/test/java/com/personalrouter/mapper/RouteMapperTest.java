@@ -63,6 +63,45 @@ class RouteMapperTest {
     }
 
     @Test
+    void toRouteResult_drivingHgvProfile_carriesProfile() {
+        OrsRoute orsRoute = new OrsRoute(
+                new OrsRouteSummary(2000.0, 900.0),
+                "hgvGeo",
+                List.of(new OrsSegment(2000.0, 900.0)));
+
+        RouteResultDto dto = mapper.toRouteResult(orsRoute, "driving-hgv", List.of(sp, rj));
+
+        assertThat(dto.profile()).isEqualTo("driving-hgv");
+        assertThat(dto.distanceMeters()).isEqualTo(2000L);
+        assertThat(dto.durationSeconds()).isEqualTo(900L);
+    }
+
+    @Test
+    void toEntity_drivingHgvProfile_persistsProfile() {
+        RoutePlanRequest request = new RoutePlanRequest(
+                "driving-hgv", sp, rj, null, "Rota HGV");
+        RouteResultDto result = new RouteResultDto("driving-hgv", 500_000L, 25_000L, "hgvGeo", List.of());
+
+        PlannedRoute entity = mapper.toEntity(request, result);
+
+        assertThat(entity.getProfile()).isEqualTo("driving-hgv");
+    }
+
+    @Test
+    void toDto_drivingHgvProfile_roundTrips() {
+        RoutePlanRequest request = new RoutePlanRequest(
+                "driving-hgv", sp, rj, null, "Rota HGV");
+        RouteResultDto result = new RouteResultDto("driving-hgv", 500_000L, 25_000L, "hgvGeo", List.of());
+        PlannedRoute entity = mapper.toEntity(request, result);
+        entity.setId(UUID.randomUUID());
+        entity.setCreatedAt(Instant.parse("2026-06-23T00:00:00Z"));
+
+        PlannedRouteDto dto = mapper.toDto(entity);
+
+        assertThat(dto.profile()).isEqualTo("driving-hgv");
+    }
+
+    @Test
     void toEntity_flattensPointsAndAssignsStopOrderAndBackReference() {
         RoutePlanRequest request = new RoutePlanRequest(
                 "driving-car", sp, rj, List.of(sjc), "Minha rota");
