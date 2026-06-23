@@ -147,10 +147,21 @@ schema ↔ entidades.
 | Fase 6 | Testes (unitários + integração) + gate JaCoCo 80% | Concluída |
 | Fase 7 | Estratégia dual-mode de persistência (Testcontainers + H2 fallback) | Concluída |
 | Fase 8 | Perfil de transporte caminhão (`driving-hgv`) | Concluída |
+| Fase 9 | Praças de pedágio: ingestão por CSV (assíncrona) + pedágios no trajeto | Em planejamento ([TDD](docs/TDD-pracas-de-pedagio.md) · [KAN-18](https://filipeazvdo.atlassian.net/browse/KAN-18)) |
+
+## Documentação técnica (TDDs)
+
+| Documento | Tema |
+|---|---|
+| [Planejamento de rotas](docs/TDD-planejamento-de-rotas.md) | Cálculo e persistência de rotas com paradas |
+| [Validação de DB sem Docker](docs/TDD-validacao-db-sem-docker.md) | Estratégia dual-mode de persistência (Testcontainers + H2) |
+| [Perfil de transporte caminhão](docs/TDD-perfil-transporte-caminhao.md) | Perfil `driving-hgv` |
+| [Praças de pedágio](docs/TDD-pracas-de-pedagio.md) | Ingestão por CSV + pedágios sobre o trajeto |
 
 ## Roadmap (V2+)
 
 - Restrições de veículo pesado para `driving-hgv` (peso, altura, cargas perigosas)
+- Tarifa/custo de pedágio e casamento por sentido/rodovia (evolução das praças de pedágio)
 - Autenticação JWT para suporte multi-usuário
 - Perfis de transporte adicionais (bicicleta, a pé)
 - Otimização de ordem de waypoints (problema do caixeiro-viajante)
