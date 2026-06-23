@@ -1,5 +1,7 @@
 package com.personalrouter.dto;
 
+import com.personalrouter.domain.RouteProfiles;
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
@@ -9,7 +11,9 @@ import java.util.List;
 
 /** Corpo da requisição para calcular (preview) ou calcular e salvar uma rota. */
 public record RoutePlanRequest(
-        @Pattern(regexp = "driving-car", message = "perfil não suportado; use driving-car")
+        @Schema(description = "Perfil de transporte (opcional, default driving-car)",
+                allowableValues = {"driving-car", "driving-hgv"}, example = "driving-car")
+        @Pattern(regexp = RouteProfiles.PATTERN, message = RouteProfiles.UNSUPPORTED_MESSAGE)
         String profile,
         @NotNull(message = "origin é obrigatório")
         @Valid

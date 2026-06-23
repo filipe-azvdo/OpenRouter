@@ -2,6 +2,7 @@ package com.personalrouter.service;
 
 import com.personalrouter.client.OpenRouteServiceGateway;
 import com.personalrouter.client.dto.OrsDirectionsResponse;
+import com.personalrouter.domain.RouteProfiles;
 import com.personalrouter.dto.Coordinate;
 import com.personalrouter.dto.PlannedRouteDto;
 import com.personalrouter.dto.RoutePlanRequest;
@@ -25,8 +26,6 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @RequiredArgsConstructor
 public class RouteServiceImpl implements RouteService {
-
-    private static final String DEFAULT_PROFILE = "driving-car";
 
     private final OpenRouteServiceGateway gateway;
     private final RouteMapper mapper;
@@ -100,7 +99,7 @@ public class RouteServiceImpl implements RouteService {
 
     private String resolveProfile(String profile) {
         if (profile == null || profile.isBlank()) {
-            return DEFAULT_PROFILE;
+            return RouteProfiles.DEFAULT;
         }
         return profile;
     }

@@ -65,6 +65,19 @@ class OpenRouteServiceGatewayTest {
     }
 
     @Test
+    void getDirections_drivingHgv_delegatesToConverterAndClient() {
+        OrsDirectionsResponse expectedResponse = new OrsDirectionsResponse(
+                List.of(new OrsRoute(new OrsRouteSummary(2000.0, 300.0), "hgvGeometry", List.of()))
+        );
+        when(converter.toOrsCoordinates(points)).thenReturn(orsCoords);
+        when(client.getDirections(eq("driving-hgv"), any(OrsDirectionsRequest.class))).thenReturn(expectedResponse);
+
+        OrsDirectionsResponse result = gateway.getDirections("driving-hgv", points);
+
+        assertThat(result).isEqualTo(expectedResponse);
+    }
+
+    @Test
     void getDirections_rethrowsDomainExceptionFromErrorDecoder() {
         OpenRouteServiceQuotaExceededException domainException =
                 new OpenRouteServiceQuotaExceededException("Cota excedida");

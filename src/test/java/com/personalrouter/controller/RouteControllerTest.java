@@ -7,6 +7,7 @@ import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.hamcrest.Matchers.containsString;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -71,6 +72,11 @@ class RouteControllerTest {
         return new RouteResultDto("driving-car", 434_000L, 16_200L, "encodedGeometry", List.of(seg));
     }
 
+    private static RouteResultDto sampleHgvRouteResult() {
+        RouteSegmentDto seg = new RouteSegmentDto("São Paulo", "Rio de Janeiro", 434_000L, 16_200L);
+        return new RouteResultDto("driving-hgv", 434_000L, 16_200L, "encodedGeometry", List.of(seg));
+    }
+
     private static PlannedRouteDto samplePlannedRoute() {
         return new PlannedRouteDto(
             FIXED_ID,
@@ -86,10 +92,35 @@ class RouteControllerTest {
         );
     }
 
+    private static PlannedRouteDto sampleHgvPlannedRoute() {
+        return new PlannedRouteDto(
+            FIXED_ID,
+            "SP → RJ HGV",
+            "driving-hgv",
+            saoPaulo(),
+            rioDeJaneiro(),
+            List.of(),
+            434_000L,
+            16_200L,
+            "encodedGeometry",
+            Instant.parse("2024-01-15T10:00:00Z")
+        );
+    }
+
     /** Minimal valid JSON body — only origin and destination required. */
     private static String validBody() {
         return """
             {
+              "origin":      {"lat": -23.5505, "lon": -46.6333, "label": "São Paulo"},
+              "destination": {"lat": -22.9068, "lon": -43.1729, "label": "Rio de Janeiro"}
+            }
+            """;
+    }
+
+    private static String validHgvBody() {
+        return """
+            {
+              "profile":     "driving-hgv",
               "origin":      {"lat": -23.5505, "lon": -46.6333, "label": "São Paulo"},
               "destination": {"lat": -22.9068, "lon": -43.1729, "label": "Rio de Janeiro"}
             }
@@ -113,6 +144,28 @@ class RouteControllerTest {
             .andExpect(jsonPath("$.durationSeconds").value(16_200))
             .andExpect(jsonPath("$.geometry").value("encodedGeometry"))
             .andExpect(jsonPath("$.segments").isArray());
+    }
+
+    @Test
+    void planRoute_drivingHgvProfile_returns200WithHgvProfile() throws Exception {
+        when(routeService.planRoute(any())).thenReturn(sampleHgvRouteResult());
+
+        mockMvc.perform(post(PLAN_URL)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(validHgvBody()))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.profile").value("driving-hgv"));
+    }
+
+    @Test
+    void createRoute_drivingHgvProfile_returns201WithHgvProfile() throws Exception {
+        when(routeService.createRoute(any())).thenReturn(sampleHgvPlannedRoute());
+
+        mockMvc.perform(post(BASE_URL)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(validHgvBody()))
+            .andExpect(status().isCreated())
+            .andExpect(jsonPath("$.profile").value("driving-hgv"));
     }
 
     @Test
@@ -257,7 +310,7 @@ class RouteControllerTest {
     }
 
     @Test
-    void planRoute_unsupportedProfile_returns400ProblemJson() throws Exception {
+    void planRoute_unsupportedProfile_returns400ProblemJsonWithBothProfiles() throws Exception {
         String body = """
             {
               "profile":     "foot-walking",
@@ -270,7 +323,9 @@ class RouteControllerTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(body))
             .andExpect(status().isBadRequest())
-            .andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON));
+            .andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON))
+            .andExpect(content().string(containsString("driving-car")))
+            .andExpect(content().string(containsString("driving-hgv")));
     }
 
     // -----------------------------------------------------------------------
