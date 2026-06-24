@@ -72,6 +72,26 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         return super.handleExceptionInternal(ex, pd, responseHeaders, status, request);
     }
 
+    @ExceptionHandler(InvalidCsvException.class)
+    public ResponseEntity<ProblemDetail> handleInvalidCsv(InvalidCsvException ex) {
+        log.warn("CSV inválido: {}", ex.getMessage());
+        ProblemDetail pd = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, ex.getMessage());
+        pd.setTitle("Invalid CSV");
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .contentType(MediaType.APPLICATION_PROBLEM_JSON)
+                .body(pd);
+    }
+
+    @ExceptionHandler(TollPlazaImportNotFoundException.class)
+    public ResponseEntity<ProblemDetail> handleImportNotFound(TollPlazaImportNotFoundException ex) {
+        log.warn("Import não encontrado: {}", ex.getMessage());
+        ProblemDetail pd = ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, ex.getMessage());
+        pd.setTitle("Import Not Found");
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .contentType(MediaType.APPLICATION_PROBLEM_JSON)
+                .body(pd);
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ProblemDetail> handleGeneric(Exception ex) {
         log.error("Unexpected error", ex);
