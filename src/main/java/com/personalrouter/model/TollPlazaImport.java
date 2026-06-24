@@ -30,7 +30,7 @@ public class TollPlazaImport {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
-    @Column(name = "content_hash", nullable = false, unique = true)
+    @Column(name = "content_hash", nullable = false)
     private String contentHash;
 
     @Enumerated(EnumType.STRING)

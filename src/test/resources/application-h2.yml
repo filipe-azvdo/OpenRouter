@@ -13,6 +13,5 @@ spring:
       # Mantém o contrato schema <-> entidades validado também no caminho H2.
       ddl-auto: validate
   flyway:
-    # Aplica a mesma V1__create_planned_route.sql no H2.
     enabled: true
     locations: classpath:db/migration
