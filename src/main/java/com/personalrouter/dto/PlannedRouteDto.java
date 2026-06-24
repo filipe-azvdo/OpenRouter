@@ -15,5 +15,11 @@ public record PlannedRouteDto(
         long distanceMeters,
         long durationSeconds,
         String geometry,
+        List<TollPlazaDto> tollPlazas,
         Instant createdAt
-) {}
+) {
+    public PlannedRouteDto withTollPlazas(List<TollPlazaDto> tollPlazas) {
+        return new PlannedRouteDto(id, name, profile, origin, destination, stops,
+                distanceMeters, durationSeconds, geometry, tollPlazas, createdAt);
+    }
+}

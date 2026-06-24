@@ -69,12 +69,12 @@ class RouteControllerTest {
 
     private static RouteResultDto sampleRouteResult() {
         RouteSegmentDto seg = new RouteSegmentDto("São Paulo", "Rio de Janeiro", 434_000L, 16_200L);
-        return new RouteResultDto("driving-car", 434_000L, 16_200L, "encodedGeometry", List.of(seg));
+        return new RouteResultDto("driving-car", 434_000L, 16_200L, "encodedGeometry", List.of(seg), List.of());
     }
 
     private static RouteResultDto sampleHgvRouteResult() {
         RouteSegmentDto seg = new RouteSegmentDto("São Paulo", "Rio de Janeiro", 434_000L, 16_200L);
-        return new RouteResultDto("driving-hgv", 434_000L, 16_200L, "encodedGeometry", List.of(seg));
+        return new RouteResultDto("driving-hgv", 434_000L, 16_200L, "encodedGeometry", List.of(seg), List.of());
     }
 
     private static PlannedRouteDto samplePlannedRoute() {
@@ -88,6 +88,7 @@ class RouteControllerTest {
             434_000L,
             16_200L,
             "encodedGeometry",
+            List.of(),
             Instant.parse("2024-01-15T10:00:00Z")
         );
     }
@@ -103,6 +104,7 @@ class RouteControllerTest {
             434_000L,
             16_200L,
             "encodedGeometry",
+            List.of(),
             Instant.parse("2024-01-15T10:00:00Z")
         );
     }
