@@ -13,6 +13,7 @@ import java.util.Optional;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -26,7 +27,7 @@ public class TollPlazaImportServiceImpl implements TollPlazaImportService {
 
     private final TollPlazaImportRepository importRepository;
     private final TollPlazaCsvParser parser;
-    private final TollPlazaImportWorker worker;
+    private final ApplicationEventPublisher events;
     private final TollPlazaImportMapper mapper;
 
     @Override
@@ -47,7 +48,7 @@ public class TollPlazaImportServiceImpl implements TollPlazaImportService {
                 .status(ImportStatus.PENDING)
                 .build());
         log.info("Import {} aceito (PENDING), disparando worker", job.getId());
-        worker.process(job.getId(), content);
+        events.publishEvent(new TollPlazaImportCreatedEvent(job.getId(), content));
         return new ImportSubmission(mapper.toDto(job), true);
     }
 
