@@ -6,8 +6,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.personalrouter.model.ImportStatus;
+import com.personalrouter.model.TollPlazaImport;
 import com.personalrouter.repository.TollPlazaImportRepository;
 import com.personalrouter.repository.TollPlazaRepository;
+import com.personalrouter.service.csv.ContentHash;
 import java.util.concurrent.Executor;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -117,5 +120,25 @@ class TollPlazaImportIntegrationTest {
         MockMultipartFile bad = new MockMultipartFile("file", "latin1.csv", "text/csv", invalidUtf8);
         mockMvc.perform(multipart("/api/v1/toll-plazas/import").file(bad))
                 .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void reuploadAposFalha_criaNovoImport_eReprocessa() throws Exception {
+        byte[] bytes = new ClassPathResource("csv/three-plazas.csv").getInputStream().readAllBytes();
+        String hash = ContentHash.sha256Hex(bytes);
+
+        TollPlazaImport failed = TollPlazaImport.builder()
+                .contentHash(hash)
+                .status(ImportStatus.FAILED)
+                .build();
+        importRepository.save(failed);
+
+        String id = uploadExpectingAccepted("csv/three-plazas.csv");
+
+        org.assertj.core.api.Assertions.assertThat(importRepository.count()).isEqualTo(2);
+
+        mockMvc.perform(get("/api/v1/toll-plazas/imports/{id}", id))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("SUCCESS"));
     }
 }
