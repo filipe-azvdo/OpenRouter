@@ -3,7 +3,6 @@ package com.personalrouter.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -24,6 +23,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.test.util.ReflectionTestUtils;
 
 @ExtendWith(MockitoExtension.class)
@@ -31,7 +31,7 @@ class TollPlazaImportServiceImplTest {
 
     @Mock private TollPlazaImportRepository importRepository;
     @Mock private TollPlazaCsvParser parser;
-    @Mock private TollPlazaImportWorker worker;
+    @Mock private ApplicationEventPublisher events;
     @Mock private TollPlazaImportMapper mapper;
     @InjectMocks private TollPlazaImportServiceImpl service;
 
@@ -44,7 +44,7 @@ class TollPlazaImportServiceImplTest {
 
         assertThatThrownBy(() -> service.importCsv(CONTENT)).isInstanceOf(InvalidCsvException.class);
         verify(importRepository, never()).save(any());
-        verify(worker, never()).process(any(), any());
+        verify(events, never()).publishEvent(any());
     }
 
     @Test
@@ -58,12 +58,12 @@ class TollPlazaImportServiceImplTest {
         ImportSubmission submission = service.importCsv(CONTENT);
 
         assertThat(submission.created()).isFalse();
-        verify(worker, never()).process(any(), any());
+        verify(events, never()).publishEvent(any());
         verify(importRepository, never()).save(any());
     }
 
     @Test
-    void newHashCreatesPendingJobAndDispatchesWorker() {
+    void newHashCreatesPendingJobAndPublishesEvent() {
         when(importRepository.findFirstByContentHashAndStatusIn(any(), any())).thenReturn(Optional.empty());
         when(importRepository.save(any(TollPlazaImport.class))).thenAnswer(i -> {
             TollPlazaImport j = i.getArgument(0);
@@ -76,7 +76,7 @@ class TollPlazaImportServiceImplTest {
 
         assertThat(submission.created()).isTrue();
         assertThat(submission.result().status()).isEqualTo("PENDING");
-        verify(worker).process(any(UUID.class), eq(CONTENT));
+        verify(events).publishEvent(any(TollPlazaImportCreatedEvent.class));
     }
 
     @Test
