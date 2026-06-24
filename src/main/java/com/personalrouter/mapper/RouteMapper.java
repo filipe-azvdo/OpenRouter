@@ -7,6 +7,7 @@ import com.personalrouter.dto.RoutePlanRequest;
 import com.personalrouter.dto.RoutePoint;
 import com.personalrouter.dto.RouteResultDto;
 import com.personalrouter.dto.RouteSegmentDto;
+import com.personalrouter.dto.TollPlazaDto;
 import com.personalrouter.model.PlannedRoute;
 import com.personalrouter.model.PlannedRouteStop;
 import java.util.ArrayList;
@@ -25,7 +26,8 @@ public interface RouteMapper {
      * Traduz a rota do ORS para o DTO de domínio, casando cada trecho do ORS com o par de pontos
      * consecutivos (segmento {@code i} = trecho do ponto {@code i} ao ponto {@code i + 1}).
      */
-    default RouteResultDto toRouteResult(OrsRoute orsRoute, String profile, List<RoutePoint> orderedPoints) {
+    default RouteResultDto toRouteResult(OrsRoute orsRoute, String profile,
+                                         List<RoutePoint> orderedPoints, List<TollPlazaDto> tollPlazas) {
         List<OrsSegment> orsSegments = orsRoute.segments() == null ? List.of() : orsRoute.segments();
         List<RouteSegmentDto> segments = new ArrayList<>();
         for (int i = 0; i < orsSegments.size(); i++) {
@@ -44,7 +46,8 @@ public interface RouteMapper {
                 Math.round(orsRoute.summary().distance()),
                 Math.round(orsRoute.summary().duration()),
                 orsRoute.geometry(),
-                segments
+                segments,
+                tollPlazas
         );
     }
 
@@ -90,6 +93,7 @@ public interface RouteMapper {
     @Mapping(target = "destination.lat", source = "destinationLat")
     @Mapping(target = "destination.lon", source = "destinationLon")
     @Mapping(target = "destination.label", source = "destinationLabel")
+    @Mapping(target = "tollPlazas", ignore = true)
     PlannedRouteDto toDto(PlannedRoute entity);
 
     RoutePoint toPoint(PlannedRouteStop stop);

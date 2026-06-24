@@ -8,5 +8,6 @@ public record RouteResultDto(
         long distanceMeters,
         long durationSeconds,
         String geometry,
-        List<RouteSegmentDto> segments
+        List<RouteSegmentDto> segments,
+        List<TollPlazaDto> tollPlazas
 ) {}

@@ -8,6 +8,7 @@ import com.personalrouter.dto.PlannedRouteDto;
 import com.personalrouter.dto.RoutePlanRequest;
 import com.personalrouter.dto.RoutePoint;
 import com.personalrouter.dto.RouteResultDto;
+import com.personalrouter.dto.TollPlazaDto;
 import com.personalrouter.exception.RouteCalculationException;
 import com.personalrouter.exception.RouteNotFoundException;
 import com.personalrouter.mapper.RouteMapper;
@@ -30,6 +31,7 @@ public class RouteServiceImpl implements RouteService {
     private final OpenRouteServiceGateway gateway;
     private final RouteMapper mapper;
     private final PlannedRouteRepository repository;
+    private final TollMatchingService tollMatchingService;
 
     @Override
     public RouteResultDto planRoute(RoutePlanRequest request) {
@@ -43,14 +45,14 @@ public class RouteServiceImpl implements RouteService {
         PlannedRoute entity = mapper.toEntity(request, result);
         PlannedRoute saved = repository.save(entity);
         log.info("Rota planejada salva com id {}", saved.getId());
-        return mapper.toDto(saved);
+        return mapper.toDto(saved).withTollPlazas(result.tollPlazas());
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<PlannedRouteDto> listRoutes() {
         return repository.findAll(Sort.by(Sort.Direction.DESC, "createdAt")).stream()
-                .map(mapper::toDto)
+                .map(this::toDtoWithTolls)
                 .toList();
     }
 
@@ -59,7 +61,7 @@ public class RouteServiceImpl implements RouteService {
     public PlannedRouteDto getRoute(UUID id) {
         PlannedRoute route = repository.findById(id)
                 .orElseThrow(() -> new RouteNotFoundException("Rota não encontrada: " + id));
-        return mapper.toDto(route);
+        return toDtoWithTolls(route);
     }
 
     @Override
@@ -84,7 +86,14 @@ public class RouteServiceImpl implements RouteService {
             throw new RouteCalculationException("Nenhuma rota encontrada para os pontos informados");
         }
 
-        return mapper.toRouteResult(response.routes().get(0), profile, orderedPoints);
+        String geometry = response.routes().get(0).geometry();
+        List<TollPlazaDto> tollPlazas = tollMatchingService.findTollPlazasAlongRoute(geometry);
+        return mapper.toRouteResult(response.routes().get(0), profile, orderedPoints, tollPlazas);
+    }
+
+    private PlannedRouteDto toDtoWithTolls(PlannedRoute route) {
+        List<TollPlazaDto> tollPlazas = tollMatchingService.findTollPlazasAlongRoute(route.getGeometry());
+        return mapper.toDto(route).withTollPlazas(tollPlazas);
     }
 
     private List<RoutePoint> buildOrderedPoints(RoutePlanRequest request) {

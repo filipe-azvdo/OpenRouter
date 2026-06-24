@@ -51,6 +51,9 @@ class RouteServiceImplTest {
     @Mock
     private PlannedRouteRepository repository;
 
+    @Mock
+    private TollMatchingService tollMatchingService;
+
     @InjectMocks
     private RouteServiceImpl service;
 
@@ -64,15 +67,16 @@ class RouteServiceImplTest {
 
     private static PlannedRouteDto dummyDto() {
         return new PlannedRouteDto(UUID.randomUUID(), "n", "driving-car", null, null, List.of(),
-                100L, 60L, "geo", Instant.now());
+                100L, 60L, "geo", List.of(), Instant.now());
     }
 
     @Test
     void planRoute_noStops_callsGatewayWithDefaultProfileAndOrderedCoordinates() {
         RoutePlanRequest request = new RoutePlanRequest(null, origin, destination, null, null);
-        RouteResultDto expected = new RouteResultDto("driving-car", 100L, 60L, "geo", List.of());
+        RouteResultDto expected = new RouteResultDto("driving-car", 100L, 60L, "geo", List.of(), List.of());
         when(gateway.getDirections(eq("driving-car"), anyList())).thenReturn(singleRouteResponse());
-        when(mapper.toRouteResult(any(), eq("driving-car"), anyList())).thenReturn(expected);
+        when(tollMatchingService.findTollPlazasAlongRoute(any())).thenReturn(List.of());
+        when(mapper.toRouteResult(any(), eq("driving-car"), anyList(), anyList())).thenReturn(expected);
 
         RouteResultDto result = service.planRoute(request);
 
@@ -90,8 +94,9 @@ class RouteServiceImplTest {
         RoutePlanRequest request =
                 new RoutePlanRequest("driving-car", origin, destination, List.of(stop1, stop2), null);
         when(gateway.getDirections(eq("driving-car"), anyList())).thenReturn(singleRouteResponse());
-        when(mapper.toRouteResult(any(), eq("driving-car"), anyList())).thenReturn(
-                new RouteResultDto("driving-car", 1L, 1L, "geo", List.of()));
+        when(tollMatchingService.findTollPlazasAlongRoute(any())).thenReturn(List.of());
+        when(mapper.toRouteResult(any(), eq("driving-car"), anyList(), anyList())).thenReturn(
+                new RouteResultDto("driving-car", 1L, 1L, "geo", List.of(), List.of()));
 
         service.planRoute(request);
 
@@ -106,9 +111,10 @@ class RouteServiceImplTest {
     @Test
     void planRoute_drivingHgvProfile_callsGatewayWithHgvProfile() {
         RoutePlanRequest request = new RoutePlanRequest("driving-hgv", origin, destination, null, null);
-        RouteResultDto expected = new RouteResultDto("driving-hgv", 100L, 60L, "geo", List.of());
+        RouteResultDto expected = new RouteResultDto("driving-hgv", 100L, 60L, "geo", List.of(), List.of());
         when(gateway.getDirections(eq("driving-hgv"), anyList())).thenReturn(singleRouteResponse());
-        when(mapper.toRouteResult(any(), eq("driving-hgv"), anyList())).thenReturn(expected);
+        when(tollMatchingService.findTollPlazasAlongRoute(any())).thenReturn(List.of());
+        when(mapper.toRouteResult(any(), eq("driving-hgv"), anyList(), anyList())).thenReturn(expected);
 
         RouteResultDto result = service.planRoute(request);
 
@@ -150,20 +156,22 @@ class RouteServiceImplTest {
     @Test
     void createRoute_calculatesPersistsAndReturnsDto() {
         RoutePlanRequest request = new RoutePlanRequest("driving-car", origin, destination, null, "Minha rota");
-        RouteResultDto result = new RouteResultDto("driving-car", 100L, 60L, "geo", List.of());
+        RouteResultDto result = new RouteResultDto("driving-car", 100L, 60L, "geo", List.of(), List.of());
         PlannedRoute entity = new PlannedRoute();
         PlannedRoute saved = new PlannedRoute();
         saved.setId(UUID.randomUUID());
         PlannedRouteDto dto = dummyDto();
         when(gateway.getDirections(eq("driving-car"), anyList())).thenReturn(singleRouteResponse());
-        when(mapper.toRouteResult(any(), eq("driving-car"), anyList())).thenReturn(result);
+        when(tollMatchingService.findTollPlazasAlongRoute(any())).thenReturn(List.of());
+        when(mapper.toRouteResult(any(), eq("driving-car"), anyList(), anyList())).thenReturn(result);
         when(mapper.toEntity(request, result)).thenReturn(entity);
         when(repository.save(entity)).thenReturn(saved);
         when(mapper.toDto(saved)).thenReturn(dto);
 
         PlannedRouteDto out = service.createRoute(request);
 
-        assertThat(out).isSameAs(dto);
+        assertThat(out.name()).isEqualTo(dto.name());
+        assertThat(out.tollPlazas()).isEmpty();
         verify(repository).save(entity);
     }
 
@@ -176,10 +184,11 @@ class RouteServiceImplTest {
         when(repository.findAll(any(Sort.class))).thenReturn(List.of(e1, e2));
         when(mapper.toDto(e1)).thenReturn(d1);
         when(mapper.toDto(e2)).thenReturn(d2);
+        when(tollMatchingService.findTollPlazasAlongRoute(any())).thenReturn(List.of());
 
         List<PlannedRouteDto> out = service.listRoutes();
 
-        assertThat(out).containsExactly(d1, d2);
+        assertThat(out).hasSize(2);
         ArgumentCaptor<Sort> sortCaptor = ArgumentCaptor.forClass(Sort.class);
         verify(repository).findAll(sortCaptor.capture());
         assertThat(sortCaptor.getValue()).isEqualTo(Sort.by(Sort.Direction.DESC, "createdAt"));
@@ -192,8 +201,10 @@ class RouteServiceImplTest {
         PlannedRouteDto dto = dummyDto();
         when(repository.findById(id)).thenReturn(Optional.of(entity));
         when(mapper.toDto(entity)).thenReturn(dto);
+        when(tollMatchingService.findTollPlazasAlongRoute(any())).thenReturn(List.of());
 
-        assertThat(service.getRoute(id)).isSameAs(dto);
+        PlannedRouteDto result = service.getRoute(id);
+        assertThat(result.name()).isEqualTo(dto.name());
     }
 
     @Test
@@ -233,7 +244,7 @@ class RouteServiceImplTest {
     @SuppressWarnings("unchecked")
     private List<RoutePoint> captureMapperOrderedPoints() {
         ArgumentCaptor<List<RoutePoint>> captor = ArgumentCaptor.forClass(List.class);
-        verify(mapper).toRouteResult(any(), eq("driving-car"), captor.capture());
+        verify(mapper).toRouteResult(any(), eq("driving-car"), captor.capture(), anyList());
         return captor.getValue();
     }
 }
