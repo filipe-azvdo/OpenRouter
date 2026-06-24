@@ -147,7 +147,44 @@ schema ↔ entidades.
 | Fase 6 | Testes (unitários + integração) + gate JaCoCo 80% | Concluída |
 | Fase 7 | Estratégia dual-mode de persistência (Testcontainers + H2 fallback) | Concluída |
 | Fase 8 | Perfil de transporte caminhão (`driving-hgv`) | Concluída |
-| Fase 9 | Praças de pedágio: ingestão por CSV (assíncrona) + pedágios no trajeto | Em planejamento ([TDD](docs/TDD-pracas-de-pedagio.md) · [KAN-18](https://filipeazvdo.atlassian.net/browse/KAN-18)) |
+| Fase 9a | Praças de pedágio: ingestão por CSV (KAN-19) | Concluída |
+| Fase 9b | Pedágios no trajeto (KAN-20) | Em planejamento ([TDD](docs/TDD-pracas-de-pedagio.md) · [KAN-18](https://filipeazvdo.atlassian.net/browse/KAN-18)) |
+
+## Ingestão de Praças de Pedágio (KAN-19)
+
+Upload assíncrono de CSV que sincroniza a tabela `toll_plaza` (upsert por chave natural + soft delete por reconciliação), com idempotência por hash SHA-256.
+
+### Endpoints
+
+| Método | Path | Descrição |
+|---|---|---|
+| `POST` | `/api/v1/toll-plazas/import` | Upload de CSV (`multipart/form-data`, campo `file`) → **202** (novo) ou **200** (idempotente) |
+| `GET` | `/api/v1/toll-plazas/imports/{id}` | Status do import (contagens + erros por linha) |
+
+### Contrato do CSV
+
+- **Encoding:** UTF-8 estrito (rejeita bytes inválidos)
+- **Delimitador:** `;`
+- **13 colunas na ordem:** `concessionaria;praca_de_pedagio;ano_do_pnv_snv;rodovia;uf;km_m;municipal;tipo_de_pista;sentido;situacao;data_da_inativacao;latitude;longitude`
+- `situacao` e `data_da_inativacao` são validadas no cabeçalho mas não persistidas
+
+### Processamento
+
+- **Validação síncrona:** encoding, cabeçalho (13 colunas na ordem) e arquivo não-vazio → 400 se inválido
+- **Idempotência:** hash SHA-256 do conteúdo; reenvio do mesmo arquivo retorna o import existente (200)
+- **Reconciliação:** upsert por chave natural `(rodovia, km_m, sentido)`, soft delete por ausência, reativação sem duplicar
+- **Erros por linha:** linhas individualmente inválidas são reportadas sem abortar o lote
+- **Executor dedicado:** single-thread (`tollImportExecutor`), isolado do pool de virtual threads global
+
+### Exemplo de uso
+
+```bash
+# Upload do CSV
+curl -i -F "file=@assets/csv/example.csv" http://localhost:8080/api/v1/toll-plazas/import
+
+# Consulta de status
+curl http://localhost:8080/api/v1/toll-plazas/imports/<importId>
+```
 
 ## Documentação técnica (TDDs)
 

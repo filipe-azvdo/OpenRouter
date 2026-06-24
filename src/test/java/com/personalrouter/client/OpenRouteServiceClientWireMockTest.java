@@ -4,6 +4,8 @@ import com.github.tomakehurst.wiremock.junit5.WireMockExtension;
 import com.personalrouter.client.dto.OrsDirectionsResponse;
 import com.personalrouter.dto.Coordinate;
 import com.personalrouter.repository.PlannedRouteRepository;
+import com.personalrouter.repository.TollPlazaImportRepository;
+import com.personalrouter.repository.TollPlazaRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -46,9 +48,14 @@ class OpenRouteServiceClientWireMockTest {
     @Autowired
     private OpenRouteServiceGateway gateway;
 
-    // JPA está excluído neste teste; o RouteServiceImpl (component-scanned) precisa do repositório.
     @MockitoBean
     private PlannedRouteRepository plannedRouteRepository;
+
+    @MockitoBean
+    private TollPlazaRepository tollPlazaRepository;
+
+    @MockitoBean
+    private TollPlazaImportRepository tollPlazaImportRepository;
 
     @Test
     void getDirections_happyPath_deserializesResponseCorrectly() throws Exception {

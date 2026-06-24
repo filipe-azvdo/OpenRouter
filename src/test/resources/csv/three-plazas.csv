@@ -1,0 +1,4 @@
+concessionaria;praca_de_pedagio;ano_do_pnv_snv;rodovia;uf;km_m;municipal;tipo_de_pista;sentido;situacao;data_da_inativacao;latitude;longitude
+AUTOPISTA FERNÃO DIAS;3 (Cambuí);2007;BR-381;MG;900.9;Cambuí;Principal;Crescente/Decrescente;Ativo;;-22.628487;-46.07789
+AUTOPISTA FERNÃO DIAS;5 (Carmo);2007;BR-381;MG;735.5;Carmo;Principal;Crescente/Decrescente;Ativo;;-21.5457;-45.240203
+CONCESSIONARIA X;Linha Ruim;2010;BR-116;SP;210.0;Cidade;Principal;Norte;Ativo;;naoNumerico;-46.5
