@@ -36,8 +36,8 @@ class TollPlazaImportWorkerTest {
 
     @Captor private ArgumentCaptor<TollPlazaImport> captor;
 
-    private TollPlazaImportWorker newWorker() {
-        return new TollPlazaImportWorker(importRepository, parser, reconciliationService, objectMapper);
+    private TollPlazaImportWorkerImpl newWorker() {
+        return new TollPlazaImportWorkerImpl(importRepository, parser, reconciliationService, objectMapper);
     }
 
     private static TollPlazaCsvRow row() {
