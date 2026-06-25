@@ -20,7 +20,7 @@ import org.springframework.context.annotation.Import;
         "spring.flyway.enabled=true"
 })
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
-@Import(TollPlazaReconciliationService.class)
+@Import(TollPlazaReconciliationServiceImpl.class)
 class TollPlazaReconciliationServiceTest extends AbstractPersistenceTest {
 
     @Autowired

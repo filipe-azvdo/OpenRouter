@@ -22,7 +22,7 @@ class TollMatchingServiceTest {
     private TollPlazaRepository tollPlazaRepository;
 
     @InjectMocks
-    private TollMatchingService service;
+    private TollMatchingServiceImpl service;
 
     @Test
     void findTollPlazasAlongRoute_emptyPolyline_returnsEmpty() {

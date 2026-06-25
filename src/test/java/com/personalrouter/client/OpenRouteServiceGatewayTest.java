@@ -40,7 +40,7 @@ class OpenRouteServiceGatewayTest {
     private CoordinateConverter converter;
 
     @InjectMocks
-    private OpenRouteServiceGateway gateway;
+    private OpenRouteServiceGatewayImpl gateway;
 
     private List<Coordinate> points;
     private List<List<Double>> orsCoords;
