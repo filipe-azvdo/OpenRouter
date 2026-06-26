@@ -72,6 +72,11 @@ public class PlannedRoute {
     @Builder.Default
     private List<PlannedRouteStop> stops = new ArrayList<>();
 
+    @OneToMany(mappedBy = "plannedRoute", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OrderBy("matchOrder ASC")
+    @Builder.Default
+    private List<PlannedRouteToll> tollPlazas = new ArrayList<>();
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;

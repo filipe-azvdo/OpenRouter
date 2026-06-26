@@ -33,6 +33,10 @@ spring:
       ddl-auto: validate
     open-in-view: false
     show-sql: false
+    properties:
+      hibernate:
+        # Transforma o N+1 das coleções lazy (stops + tollPlazas) em poucas queries IN (...)
+        default_batch_fetch_size: 50
   flyway:
     enabled: true
   mvc:

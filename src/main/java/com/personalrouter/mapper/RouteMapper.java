@@ -10,6 +10,7 @@ import com.personalrouter.dto.RouteSegmentDto;
 import com.personalrouter.dto.TollPlazaDto;
 import com.personalrouter.model.PlannedRoute;
 import com.personalrouter.model.PlannedRouteStop;
+import com.personalrouter.model.PlannedRouteToll;
 import java.util.ArrayList;
 import java.util.List;
 import org.mapstruct.AfterMapping;
@@ -27,8 +28,10 @@ public interface RouteMapper {
      * consecutivos (segmento {@code i} = trecho do ponto {@code i} ao ponto {@code i + 1}).
      */
     default RouteResultDto toRouteResult(OrsRoute orsRoute, String profile,
-                                         List<RoutePoint> orderedPoints, List<TollPlazaDto> tollPlazas) {
-        List<OrsSegment> orsSegments = orsRoute.segments() == null ? List.of() : orsRoute.segments();
+                                         List<RoutePoint> orderedPoints,
+                                         List<TollPlazaDto> tollPlazas) {
+        List<OrsSegment> orsSegments =
+                orsRoute.segments() == null ? List.of() : orsRoute.segments();
         List<RouteSegmentDto> segments = new ArrayList<>();
         for (int i = 0; i < orsSegments.size(); i++) {
             RoutePoint from = orderedPoints.get(i);
@@ -64,6 +67,7 @@ public interface RouteMapper {
     @Mapping(target = "durationSeconds", source = "result.durationSeconds")
     @Mapping(target = "geometry", source = "result.geometry")
     @Mapping(target = "stops", source = "request.stops")
+    @Mapping(target = "tollPlazas", source = "result.tollPlazas")
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
     PlannedRoute toEntity(RoutePlanRequest request, RouteResultDto result);
@@ -73,17 +77,30 @@ public interface RouteMapper {
     @Mapping(target = "stopOrder", ignore = true)
     PlannedRouteStop toStopEntity(RoutePoint point);
 
-    /** Atribui a ordem e a referência inversa às paradas após a construção da entidade. */
+    @Mapping(target = "id", ignore = true)
+    @Mapping(target = "plannedRoute", ignore = true)
+    @Mapping(target = "matchOrder", ignore = true)
+    @Mapping(target = "kmM", source = "km")
+    PlannedRouteToll toTollEntity(TollPlazaDto dto);
+
+    /** Atribui a ordem e a referência inversa às paradas e praças após a construção da entidade. */
     @AfterMapping
-    default void linkStops(@MappingTarget PlannedRoute route) {
+    default void linkChildren(@MappingTarget PlannedRoute route) {
         List<PlannedRouteStop> stops = route.getStops();
-        if (stops == null) {
-            return;
+        if (stops != null) {
+            for (int i = 0; i < stops.size(); i++) {
+                PlannedRouteStop stop = stops.get(i);
+                stop.setPlannedRoute(route);
+                stop.setStopOrder(i);
+            }
         }
-        for (int i = 0; i < stops.size(); i++) {
-            PlannedRouteStop stop = stops.get(i);
-            stop.setPlannedRoute(route);
-            stop.setStopOrder(i);
+        List<PlannedRouteToll> tollPlazas = route.getTollPlazas();
+        if (tollPlazas != null) {
+            for (int i = 0; i < tollPlazas.size(); i++) {
+                PlannedRouteToll toll = tollPlazas.get(i);
+                toll.setPlannedRoute(route);
+                toll.setMatchOrder(i);
+            }
         }
     }
 
@@ -93,8 +110,10 @@ public interface RouteMapper {
     @Mapping(target = "destination.lat", source = "destinationLat")
     @Mapping(target = "destination.lon", source = "destinationLon")
     @Mapping(target = "destination.label", source = "destinationLabel")
-    @Mapping(target = "tollPlazas", ignore = true)
     PlannedRouteDto toDto(PlannedRoute entity);
+
+    @Mapping(target = "km", source = "kmM")
+    TollPlazaDto toTollDto(PlannedRouteToll entity);
 
     RoutePoint toPoint(PlannedRouteStop stop);
 }

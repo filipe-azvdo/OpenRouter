@@ -45,14 +45,14 @@ public class RouteServiceImpl implements RouteService {
         PlannedRoute entity = mapper.toEntity(request, result);
         PlannedRoute saved = repository.save(entity);
         log.info("Rota planejada salva com id {}", saved.getId());
-        return mapper.toDto(saved).withTollPlazas(result.tollPlazas());
+        return mapper.toDto(saved);
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<PlannedRouteDto> listRoutes() {
         return repository.findAll(Sort.by(Sort.Direction.DESC, "createdAt")).stream()
-                .map(this::toDtoWithTolls)
+                .map(mapper::toDto)
                 .toList();
     }
 
@@ -61,7 +61,7 @@ public class RouteServiceImpl implements RouteService {
     public PlannedRouteDto getRoute(UUID id) {
         PlannedRoute route = repository.findById(id)
                 .orElseThrow(() -> new RouteNotFoundException("Rota não encontrada: " + id));
-        return toDtoWithTolls(route);
+        return mapper.toDto(route);
     }
 
     @Override
@@ -83,17 +83,13 @@ public class RouteServiceImpl implements RouteService {
         OrsDirectionsResponse response = gateway.getDirections(profile, coordinates);
 
         if (response.routes() == null || response.routes().isEmpty()) {
-            throw new RouteCalculationException("Nenhuma rota encontrada para os pontos informados");
+            throw new RouteCalculationException(
+                    "Nenhuma rota encontrada para os pontos informados");
         }
 
         String geometry = response.routes().get(0).geometry();
         List<TollPlazaDto> tollPlazas = tollMatchingService.findTollPlazasAlongRoute(geometry);
         return mapper.toRouteResult(response.routes().get(0), profile, orderedPoints, tollPlazas);
-    }
-
-    private PlannedRouteDto toDtoWithTolls(PlannedRoute route) {
-        List<TollPlazaDto> tollPlazas = tollMatchingService.findTollPlazasAlongRoute(route.getGeometry());
-        return mapper.toDto(route).withTollPlazas(tollPlazas);
     }
 
     private List<RoutePoint> buildOrderedPoints(RoutePlanRequest request) {
