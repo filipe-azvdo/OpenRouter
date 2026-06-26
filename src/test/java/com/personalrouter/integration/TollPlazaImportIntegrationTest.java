@@ -1,5 +1,7 @@
 package com.personalrouter.integration;
 
+import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.awaitility.Awaitility.await;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -11,17 +13,13 @@ import com.personalrouter.model.TollPlazaImport;
 import com.personalrouter.repository.TollPlazaImportRepository;
 import com.personalrouter.repository.TollPlazaRepository;
 import com.personalrouter.service.csv.ContentHash;
-import java.util.concurrent.Executor;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
-import org.springframework.context.annotation.Bean;
 import org.springframework.core.io.ClassPathResource;
-import org.springframework.core.task.SyncTaskExecutor;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.web.servlet.MockMvc;
 import org.testcontainers.containers.PostgreSQLContainer;
@@ -36,14 +34,6 @@ class TollPlazaImportIntegrationTest {
     @Container
     @ServiceConnection
     static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:16-alpine");
-
-    @TestConfiguration
-    static class SyncExecutorConfig {
-        @Bean("tollImportExecutor")
-        Executor tollImportExecutor() {
-            return new SyncTaskExecutor();
-        }
-    }
 
     @Autowired private MockMvc mockMvc;
     @Autowired private ObjectMapper objectMapper;
@@ -68,9 +58,18 @@ class TollPlazaImportIntegrationTest {
         return objectMapper.readTree(json).get("importId").asText();
     }
 
+    private void awaitImportDone(String id) {
+        await().atMost(5, SECONDS).until(() ->
+                importRepository.findById(java.util.UUID.fromString(id))
+                        .map(j -> j.getStatus() != ImportStatus.PENDING
+                                && j.getStatus() != ImportStatus.PROCESSING)
+                        .orElse(false));
+    }
+
     @Test
     void uploadValido_processaComSucesso_eReportaLinhaInvalida() throws Exception {
         String id = uploadExpectingAccepted("csv/three-plazas.csv");
+        awaitImportDone(id);
 
         mockMvc.perform(get("/api/v1/toll-plazas/imports/{id}", id))
                 .andExpect(status().isOk())
@@ -83,7 +82,8 @@ class TollPlazaImportIntegrationTest {
 
     @Test
     void reuploadMesmoArquivo_eIdempotente_naoReprocessa() throws Exception {
-        uploadExpectingAccepted("csv/three-plazas.csv");
+        String id = uploadExpectingAccepted("csv/three-plazas.csv");
+        awaitImportDone(id);
 
         mockMvc.perform(multipart("/api/v1/toll-plazas/import").file(file("csv/three-plazas.csv")))
                 .andExpect(status().isOk());
@@ -93,13 +93,17 @@ class TollPlazaImportIntegrationTest {
 
     @Test
     void reuploadSemPraca_softDelete_eReintroducao_reativa() throws Exception {
-        uploadExpectingAccepted("csv/three-plazas.csv");
+        String id1 = uploadExpectingAccepted("csv/three-plazas.csv");
+        awaitImportDone(id1);
 
-        uploadExpectingAccepted("csv/two-plazas.csv");
+        String id2 = uploadExpectingAccepted("csv/two-plazas.csv");
+        awaitImportDone(id2);
         org.assertj.core.api.Assertions.assertThat(
                 plazaRepository.findAll()).filteredOn(p -> !p.isActive()).hasSize(1);
 
-        uploadExpectingAccepted("csv/three-plazas.csv");
+        importRepository.deleteAll();
+        String id3 = uploadExpectingAccepted("csv/three-plazas.csv");
+        awaitImportDone(id3);
         org.assertj.core.api.Assertions.assertThat(
                 plazaRepository.findAll()).filteredOn(p -> p.isActive()).hasSize(2);
     }
@@ -134,6 +138,7 @@ class TollPlazaImportIntegrationTest {
         importRepository.save(failed);
 
         String id = uploadExpectingAccepted("csv/three-plazas.csv");
+        awaitImportDone(id);
 
         org.assertj.core.api.Assertions.assertThat(importRepository.count()).isEqualTo(2);
 

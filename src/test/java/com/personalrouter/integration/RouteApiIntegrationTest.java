@@ -157,7 +157,7 @@ class RouteApiIntegrationTest {
             .andExpect(jsonPath("$.profile").value("driving-car"))
             .andExpect(jsonPath("$.distanceMeters").value(950))
             .andExpect(jsonPath("$.durationSeconds").value(120))
-            .andExpect(jsonPath("$.geometry").value("singleSegmentGeometry"))
+            .andExpect(jsonPath("$.geometry").value("_p~iF~ps|U_ulLnnqC"))
             .andExpect(jsonPath("$.segments.length()").value(1))
             .andExpect(jsonPath("$.segments[0].fromLabel").value("São Paulo"))
             .andExpect(jsonPath("$.segments[0].toLabel").value("Rio de Janeiro"));
@@ -181,7 +181,7 @@ class RouteApiIntegrationTest {
             .andExpect(jsonPath("$.profile").value("driving-car"))
             .andExpect(jsonPath("$.distanceMeters").value(3000))
             .andExpect(jsonPath("$.durationSeconds").value(600))
-            .andExpect(jsonPath("$.geometry").value("threeSegmentGeometry"))
+            .andExpect(jsonPath("$.geometry").value("_p~iF~ps|U_ulLnnqC_mqNvxq`@"))
             .andExpect(jsonPath("$.stops.length()").value(2))
             .andExpect(jsonPath("$.stops[0].label").value("Campinas"))
             .andExpect(jsonPath("$.stops[1].label").value("São José dos Campos"))
