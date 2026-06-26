@@ -1,11 +1,10 @@
 package com.personalrouter.client;
 
-import com.personalrouter.dto.Coordinate;
-import org.junit.jupiter.api.Test;
-
-import java.util.List;
-
 import static org.assertj.core.api.Assertions.assertThat;
+
+import com.personalrouter.dto.Coordinate;
+import java.util.List;
+import org.junit.jupiter.api.Test;
 
 class CoordinateConverterTest {
 

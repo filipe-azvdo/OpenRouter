@@ -1,9 +1,8 @@
 package com.personalrouter.client;
 
 import com.personalrouter.dto.Coordinate;
-import org.springframework.stereotype.Component;
-
 import java.util.List;
+import org.springframework.stereotype.Component;
 
 @Component
 public class CoordinateConverter {

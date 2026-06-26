@@ -96,7 +96,7 @@ Regras:
 ## 11. Estilo de Código
 
 - Seguir o **Google Java Style Guide**.
-- Conformidade verificada via Checkstyle no build (falhas de estilo quebram o build).
+- O build gate a **higiene de imports** via Checkstyle (wildcard, não usados, redundantes, ordenação) — violações quebram o build. O restante do Google Java Style permanece como guideline (enforcement parcial).
 - Sempre utilizar declaração de tipos explícitos para variáveis; o uso de `var` é proibido.
 - Evitar comentários óbvios; comentar apenas decisões não evidentes (ex: workarounds, invariantes).
 

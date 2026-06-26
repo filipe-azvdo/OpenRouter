@@ -22,7 +22,7 @@ A integração com o OpenRouteService é feita via **Feign Client**, com tratame
 | Documentação | SpringDoc OpenAPI (Swagger UI) |
 | Testes | JUnit 5 + Testcontainers + H2 + WireMock |
 | Cobertura | JaCoCo (mínimo 80%) |
-| Estilo | Google Java Style Guide (Checkstyle) |
+| Estilo | Google Java Style Guide (Checkstyle — gate de imports no build) |
 
 ## Arquitetura
 
