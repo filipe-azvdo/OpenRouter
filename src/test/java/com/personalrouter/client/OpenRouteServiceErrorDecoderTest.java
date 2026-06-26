@@ -1,16 +1,15 @@
 package com.personalrouter.client;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import com.personalrouter.exception.OpenRouteServiceException;
 import com.personalrouter.exception.OpenRouteServiceQuotaExceededException;
 import com.personalrouter.exception.OpenRouteServiceUnavailableException;
 import feign.Request;
 import feign.Response;
-import org.junit.jupiter.api.Test;
-
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
-
-import static org.assertj.core.api.Assertions.assertThat;
+import org.junit.jupiter.api.Test;
 
 class OpenRouteServiceErrorDecoderTest {
 
