@@ -7,6 +7,7 @@ import com.personalrouter.model.TollPlazaImport;
 import com.personalrouter.support.AbstractPersistenceTest;
 import java.util.List;
 import java.util.Optional;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
@@ -21,6 +22,11 @@ class TollPlazaImportRepositoryTest extends AbstractPersistenceTest {
 
     @Autowired
     private TollPlazaImportRepository repository;
+
+    @BeforeEach
+    void clean() {
+        repository.deleteAll();
+    }
 
     private static TollPlazaImport job(String hash, ImportStatus status) {
         return TollPlazaImport.builder().contentHash(hash).status(status).build();
