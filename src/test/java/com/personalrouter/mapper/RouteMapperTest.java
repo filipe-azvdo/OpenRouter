@@ -9,7 +9,10 @@ import com.personalrouter.dto.PlannedRouteDto;
 import com.personalrouter.dto.RoutePlanRequest;
 import com.personalrouter.dto.RoutePoint;
 import com.personalrouter.dto.RouteResultDto;
+import com.personalrouter.dto.TollPlazaDto;
 import com.personalrouter.model.PlannedRoute;
+import com.personalrouter.model.PlannedRouteToll;
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
@@ -31,7 +34,8 @@ class RouteMapperTest {
                 "geo",
                 List.of(new OrsSegment(1000.4, 600.6)));
 
-        RouteResultDto dto = mapper.toRouteResult(orsRoute, "driving-car", List.of(sp, rj), List.of());
+        RouteResultDto dto =
+                mapper.toRouteResult(orsRoute, "driving-car", List.of(sp, rj), List.of());
 
         assertThat(dto.profile()).isEqualTo("driving-car");
         assertThat(dto.distanceMeters()).isEqualTo(1000L);
@@ -52,7 +56,8 @@ class RouteMapperTest {
                 "geo2",
                 List.of(new OrsSegment(800.0, 500.0), new OrsSegment(1200.0, 700.0)));
 
-        RouteResultDto dto = mapper.toRouteResult(orsRoute, "driving-car", List.of(sp, sjc, rj), List.of());
+        RouteResultDto dto =
+                mapper.toRouteResult(orsRoute, "driving-car", List.of(sp, sjc, rj), List.of());
 
         assertThat(dto.segments()).hasSize(2);
         assertThat(dto.segments().get(0).fromLabel()).isEqualTo("São Paulo");
@@ -70,7 +75,8 @@ class RouteMapperTest {
                 "hgvGeo",
                 List.of(new OrsSegment(2000.0, 900.0)));
 
-        RouteResultDto dto = mapper.toRouteResult(orsRoute, "driving-hgv", List.of(sp, rj), List.of());
+        RouteResultDto dto =
+                mapper.toRouteResult(orsRoute, "driving-hgv", List.of(sp, rj), List.of());
 
         assertThat(dto.profile()).isEqualTo("driving-hgv");
         assertThat(dto.distanceMeters()).isEqualTo(2000L);
@@ -81,7 +87,8 @@ class RouteMapperTest {
     void toEntity_drivingHgvProfile_persistsProfile() {
         RoutePlanRequest request = new RoutePlanRequest(
                 "driving-hgv", sp, rj, null, "Rota HGV");
-        RouteResultDto result = new RouteResultDto("driving-hgv", 500_000L, 25_000L, "hgvGeo", List.of(), List.of());
+        RouteResultDto result = new RouteResultDto(
+                "driving-hgv", 500_000L, 25_000L, "hgvGeo", List.of(), List.of());
 
         PlannedRoute entity = mapper.toEntity(request, result);
 
@@ -92,7 +99,8 @@ class RouteMapperTest {
     void toDto_drivingHgvProfile_roundTrips() {
         RoutePlanRequest request = new RoutePlanRequest(
                 "driving-hgv", sp, rj, null, "Rota HGV");
-        RouteResultDto result = new RouteResultDto("driving-hgv", 500_000L, 25_000L, "hgvGeo", List.of(), List.of());
+        RouteResultDto result = new RouteResultDto(
+                "driving-hgv", 500_000L, 25_000L, "hgvGeo", List.of(), List.of());
         PlannedRoute entity = mapper.toEntity(request, result);
         entity.setId(UUID.randomUUID());
         entity.setCreatedAt(Instant.parse("2026-06-23T00:00:00Z"));
@@ -106,7 +114,8 @@ class RouteMapperTest {
     void toEntity_flattensPointsAndAssignsStopOrderAndBackReference() {
         RoutePlanRequest request = new RoutePlanRequest(
                 "driving-car", sp, rj, List.of(sjc), "Minha rota");
-        RouteResultDto result = new RouteResultDto("driving-car", 430120L, 19800L, "geoX", List.of(), List.of());
+        RouteResultDto result = new RouteResultDto(
+                "driving-car", 430120L, 19800L, "geoX", List.of(), List.of());
 
         PlannedRoute entity = mapper.toEntity(request, result);
 
@@ -125,10 +134,59 @@ class RouteMapperTest {
     }
 
     @Test
+    void toEntity_snapshotsTollPlazasWithMatchOrderAndBackReference() {
+        TollPlazaDto p0 = new TollPlazaDto("Pedágio A", "Conc A", "BR-116", "SP",
+                BigDecimal.valueOf(123.400), "Norte", -23.10, -46.10);
+        TollPlazaDto p1 = new TollPlazaDto("Pedágio B", "Conc B", "BR-101", "RJ",
+                BigDecimal.valueOf(55.000), "Sul", -22.50, -44.20);
+        RoutePlanRequest request = new RoutePlanRequest("driving-car", sp, rj, null, "Minha rota");
+        RouteResultDto result = new RouteResultDto(
+                "driving-car", 430120L, 19800L, "geoX", List.of(), List.of(p0, p1));
+
+        PlannedRoute entity = mapper.toEntity(request, result);
+
+        assertThat(entity.getTollPlazas()).hasSize(2);
+        PlannedRouteToll first = entity.getTollPlazas().get(0);
+        assertThat(first.getNome()).isEqualTo("Pedágio A");
+        assertThat(first.getRodovia()).isEqualTo("BR-116");
+        assertThat(first.getUf()).isEqualTo("SP");
+        assertThat(first.getKmM()).isEqualByComparingTo("123.400");
+        assertThat(first.getSentido()).isEqualTo("Norte");
+        assertThat(first.getMatchOrder()).isZero();
+        assertThat(first.getPlannedRoute()).isSameAs(entity);
+        assertThat(entity.getTollPlazas().get(1).getMatchOrder()).isEqualTo(1);
+        assertThat(entity.getTollPlazas().get(1).getPlannedRoute()).isSameAs(entity);
+    }
+
+    @Test
+    void toDto_returnsTollSnapshotInOrderWithKmMapped() {
+        TollPlazaDto p0 = new TollPlazaDto("Pedágio A", "Conc A", "BR-116", "SP",
+                BigDecimal.valueOf(123.400), "Norte", -23.10, -46.10);
+        TollPlazaDto p1 = new TollPlazaDto("Pedágio B", "Conc B", "BR-101", "RJ",
+                BigDecimal.valueOf(55.000), "Sul", -22.50, -44.20);
+        RoutePlanRequest request = new RoutePlanRequest("driving-car", sp, rj, null, "Minha rota");
+        RouteResultDto result = new RouteResultDto(
+                "driving-car", 430120L, 19800L, "geoX", List.of(), List.of(p0, p1));
+        PlannedRoute entity = mapper.toEntity(request, result);
+        entity.setId(UUID.randomUUID());
+        entity.setCreatedAt(Instant.parse("2026-06-26T00:00:00Z"));
+
+        PlannedRouteDto dto = mapper.toDto(entity);
+
+        assertThat(dto.tollPlazas()).hasSize(2);
+        assertThat(dto.tollPlazas().get(0).nome()).isEqualTo("Pedágio A");
+        assertThat(dto.tollPlazas().get(0).km()).isEqualByComparingTo("123.400");
+        assertThat(dto.tollPlazas().get(1).nome()).isEqualTo("Pedágio B");
+        assertThat(dto.tollPlazas()).extracting(TollPlazaDto::nome)
+                .containsExactly("Pedágio A", "Pedágio B");
+    }
+
+    @Test
     void toDto_reconstructsPointsFromFlatColumns() {
         RoutePlanRequest request = new RoutePlanRequest(
                 "driving-car", sp, rj, List.of(sjc), "Minha rota");
-        RouteResultDto result = new RouteResultDto("driving-car", 430120L, 19800L, "geoX", List.of(), List.of());
+        RouteResultDto result = new RouteResultDto(
+                "driving-car", 430120L, 19800L, "geoX", List.of(), List.of());
         PlannedRoute entity = mapper.toEntity(request, result);
         entity.setId(UUID.randomUUID());
         entity.setCreatedAt(Instant.parse("2026-06-17T00:00:00Z"));

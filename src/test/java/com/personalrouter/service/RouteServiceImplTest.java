@@ -20,6 +20,7 @@ import com.personalrouter.dto.PlannedRouteDto;
 import com.personalrouter.dto.RoutePlanRequest;
 import com.personalrouter.dto.RoutePoint;
 import com.personalrouter.dto.RouteResultDto;
+import com.personalrouter.dto.TollPlazaDto;
 import com.personalrouter.exception.OpenRouteServiceQuotaExceededException;
 import com.personalrouter.exception.OpenRouteServiceUnavailableException;
 import com.personalrouter.exception.RouteCalculationException;
@@ -27,6 +28,7 @@ import com.personalrouter.exception.RouteNotFoundException;
 import com.personalrouter.mapper.RouteMapper;
 import com.personalrouter.model.PlannedRoute;
 import com.personalrouter.repository.PlannedRouteRepository;
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
@@ -62,7 +64,8 @@ class RouteServiceImplTest {
 
     private static OrsDirectionsResponse singleRouteResponse() {
         return new OrsDirectionsResponse(List.of(
-                new OrsRoute(new OrsRouteSummary(100.0, 60.0), "geo", List.of(new OrsSegment(100.0, 60.0)))));
+                new OrsRoute(new OrsRouteSummary(100.0, 60.0),
+                        "geo", List.of(new OrsSegment(100.0, 60.0)))));
     }
 
     private static PlannedRouteDto dummyDto() {
@@ -73,10 +76,12 @@ class RouteServiceImplTest {
     @Test
     void planRoute_noStops_callsGatewayWithDefaultProfileAndOrderedCoordinates() {
         RoutePlanRequest request = new RoutePlanRequest(null, origin, destination, null, null);
-        RouteResultDto expected = new RouteResultDto("driving-car", 100L, 60L, "geo", List.of(), List.of());
+        RouteResultDto expected =
+                new RouteResultDto("driving-car", 100L, 60L, "geo", List.of(), List.of());
         when(gateway.getDirections(eq("driving-car"), anyList())).thenReturn(singleRouteResponse());
         when(tollMatchingService.findTollPlazasAlongRoute(any())).thenReturn(List.of());
-        when(mapper.toRouteResult(any(), eq("driving-car"), anyList(), anyList())).thenReturn(expected);
+        when(mapper.toRouteResult(any(), eq("driving-car"), anyList(), anyList()))
+                .thenReturn(expected);
 
         RouteResultDto result = service.planRoute(request);
 
@@ -91,8 +96,8 @@ class RouteServiceImplTest {
     void planRoute_withStops_buildsOriginThenStopsThenDestination() {
         RoutePoint stop1 = new RoutePoint(-23.1865, -45.8841, "SJC");
         RoutePoint stop2 = new RoutePoint(-22.97, -44.30, "Resende");
-        RoutePlanRequest request =
-                new RoutePlanRequest("driving-car", origin, destination, List.of(stop1, stop2), null);
+        final RoutePlanRequest request = new RoutePlanRequest(
+                "driving-car", origin, destination, List.of(stop1, stop2), null);
         when(gateway.getDirections(eq("driving-car"), anyList())).thenReturn(singleRouteResponse());
         when(tollMatchingService.findTollPlazasAlongRoute(any())).thenReturn(List.of());
         when(mapper.toRouteResult(any(), eq("driving-car"), anyList(), anyList())).thenReturn(
@@ -110,11 +115,14 @@ class RouteServiceImplTest {
 
     @Test
     void planRoute_drivingHgvProfile_callsGatewayWithHgvProfile() {
-        RoutePlanRequest request = new RoutePlanRequest("driving-hgv", origin, destination, null, null);
-        RouteResultDto expected = new RouteResultDto("driving-hgv", 100L, 60L, "geo", List.of(), List.of());
+        RoutePlanRequest request =
+                new RoutePlanRequest("driving-hgv", origin, destination, null, null);
+        RouteResultDto expected =
+                new RouteResultDto("driving-hgv", 100L, 60L, "geo", List.of(), List.of());
         when(gateway.getDirections(eq("driving-hgv"), anyList())).thenReturn(singleRouteResponse());
         when(tollMatchingService.findTollPlazasAlongRoute(any())).thenReturn(List.of());
-        when(mapper.toRouteResult(any(), eq("driving-hgv"), anyList(), anyList())).thenReturn(expected);
+        when(mapper.toRouteResult(any(), eq("driving-hgv"), anyList(), anyList()))
+                .thenReturn(expected);
 
         RouteResultDto result = service.planRoute(request);
 
@@ -125,8 +133,10 @@ class RouteServiceImplTest {
 
     @Test
     void planRoute_emptyRoutes_throwsRouteCalculationException() {
-        RoutePlanRequest request = new RoutePlanRequest("driving-car", origin, destination, null, null);
-        when(gateway.getDirections(any(), anyList())).thenReturn(new OrsDirectionsResponse(List.of()));
+        RoutePlanRequest request =
+                new RoutePlanRequest("driving-car", origin, destination, null, null);
+        when(gateway.getDirections(any(), anyList()))
+                .thenReturn(new OrsDirectionsResponse(List.of()));
 
         assertThatThrownBy(() -> service.planRoute(request))
                 .isInstanceOf(RouteCalculationException.class);
@@ -135,7 +145,8 @@ class RouteServiceImplTest {
 
     @Test
     void planRoute_propagatesQuotaExceededException() {
-        RoutePlanRequest request = new RoutePlanRequest("driving-car", origin, destination, null, null);
+        RoutePlanRequest request =
+                new RoutePlanRequest("driving-car", origin, destination, null, null);
         when(gateway.getDirections(any(), anyList()))
                 .thenThrow(new OpenRouteServiceQuotaExceededException("cota"));
 
@@ -145,7 +156,8 @@ class RouteServiceImplTest {
 
     @Test
     void planRoute_propagatesUnavailableException() {
-        RoutePlanRequest request = new RoutePlanRequest("driving-car", origin, destination, null, null);
+        RoutePlanRequest request =
+                new RoutePlanRequest("driving-car", origin, destination, null, null);
         when(gateway.getDirections(any(), anyList()))
                 .thenThrow(new OpenRouteServiceUnavailableException("indisponível"));
 
@@ -154,16 +166,24 @@ class RouteServiceImplTest {
     }
 
     @Test
-    void createRoute_calculatesPersistsAndReturnsDto() {
-        RoutePlanRequest request = new RoutePlanRequest("driving-car", origin, destination, null, "Minha rota");
-        RouteResultDto result = new RouteResultDto("driving-car", 100L, 60L, "geo", List.of(), List.of());
-        PlannedRoute entity = new PlannedRoute();
+    void createRoute_calculatesPersistsAndReturnsDtoWithTollSnapshot() {
+        final RoutePlanRequest request = new RoutePlanRequest(
+                "driving-car", origin, destination, null, "Minha rota");
+        TollPlazaDto plaza = new TollPlazaDto("Pedágio 1", "Conc", "BR-116", "SP",
+                BigDecimal.valueOf(123.4), "Norte", -23.0, -46.0);
+        final RouteResultDto result =
+                new RouteResultDto("driving-car", 100L, 60L, "geo", List.of(), List.of(plaza));
+        final PlannedRoute entity = new PlannedRoute();
         PlannedRoute saved = new PlannedRoute();
         saved.setId(UUID.randomUUID());
-        PlannedRouteDto dto = dummyDto();
+        // O snapshot já vem do toDto(saved) — sem withTollPlazas, sem novo matching pós-save.
+        PlannedRouteDto dto = new PlannedRouteDto(
+                saved.getId(), "n", "driving-car", null, null, List.of(),
+                100L, 60L, "geo", List.of(plaza), Instant.now());
         when(gateway.getDirections(eq("driving-car"), anyList())).thenReturn(singleRouteResponse());
-        when(tollMatchingService.findTollPlazasAlongRoute(any())).thenReturn(List.of());
-        when(mapper.toRouteResult(any(), eq("driving-car"), anyList(), anyList())).thenReturn(result);
+        when(tollMatchingService.findTollPlazasAlongRoute(any())).thenReturn(List.of(plaza));
+        when(mapper.toRouteResult(any(), eq("driving-car"), anyList(), anyList()))
+                .thenReturn(result);
         when(mapper.toEntity(request, result)).thenReturn(entity);
         when(repository.save(entity)).thenReturn(saved);
         when(mapper.toDto(saved)).thenReturn(dto);
@@ -171,7 +191,7 @@ class RouteServiceImplTest {
         PlannedRouteDto out = service.createRoute(request);
 
         assertThat(out.name()).isEqualTo(dto.name());
-        assertThat(out.tollPlazas()).isEmpty();
+        assertThat(out.tollPlazas()).containsExactly(plaza);
         verify(repository).save(entity);
     }
 
@@ -184,7 +204,6 @@ class RouteServiceImplTest {
         when(repository.findAll(any(Sort.class))).thenReturn(List.of(e1, e2));
         when(mapper.toDto(e1)).thenReturn(d1);
         when(mapper.toDto(e2)).thenReturn(d2);
-        when(tollMatchingService.findTollPlazasAlongRoute(any())).thenReturn(List.of());
 
         List<PlannedRouteDto> out = service.listRoutes();
 
@@ -192,6 +211,8 @@ class RouteServiceImplTest {
         ArgumentCaptor<Sort> sortCaptor = ArgumentCaptor.forClass(Sort.class);
         verify(repository).findAll(sortCaptor.capture());
         assertThat(sortCaptor.getValue()).isEqualTo(Sort.by(Sort.Direction.DESC, "createdAt"));
+        // Critério KAN-28: o read NÃO recalcula matching geométrico — lê o snapshot persistido.
+        verifyNoInteractions(tollMatchingService);
     }
 
     @Test
@@ -201,10 +222,11 @@ class RouteServiceImplTest {
         PlannedRouteDto dto = dummyDto();
         when(repository.findById(id)).thenReturn(Optional.of(entity));
         when(mapper.toDto(entity)).thenReturn(dto);
-        when(tollMatchingService.findTollPlazasAlongRoute(any())).thenReturn(List.of());
 
         PlannedRouteDto result = service.getRoute(id);
         assertThat(result.name()).isEqualTo(dto.name());
+        // Critério KAN-28: o read NÃO recalcula matching geométrico — lê o snapshot persistido.
+        verifyNoInteractions(tollMatchingService);
     }
 
     @Test
@@ -230,7 +252,8 @@ class RouteServiceImplTest {
         UUID id = UUID.randomUUID();
         when(repository.existsById(id)).thenReturn(false);
 
-        assertThatThrownBy(() -> service.deleteRoute(id)).isInstanceOf(RouteNotFoundException.class);
+        assertThatThrownBy(() -> service.deleteRoute(id))
+                .isInstanceOf(RouteNotFoundException.class);
         verify(repository, never()).deleteById(any());
     }
 

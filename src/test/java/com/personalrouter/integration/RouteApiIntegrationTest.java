@@ -15,8 +15,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.tomakehurst.wiremock.client.WireMock;
 import com.github.tomakehurst.wiremock.junit5.WireMockExtension;
+import com.personalrouter.model.TollPlaza;
 import com.personalrouter.repository.PlannedRouteRepository;
+import com.personalrouter.repository.TollPlazaRepository;
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -74,9 +77,13 @@ class RouteApiIntegrationTest {
     @Autowired
     private PlannedRouteRepository repository;
 
+    @Autowired
+    private TollPlazaRepository tollPlazaRepository;
+
     @BeforeEach
     void cleanDatabase() {
         repository.deleteAll();
+        tollPlazaRepository.deleteAll();
     }
 
     // -----------------------------------------------------------------------
@@ -87,16 +94,16 @@ class RouteApiIntegrationTest {
         stubOrs(ORS_CAR_PATH, status, body);
     }
 
-    private void stubOrsHgv(int status, String body) {
-        stubOrs(ORS_HGV_PATH, status, body);
-    }
-
     private void stubOrs(String path, int status, String body) {
         wireMock.stubFor(WireMock.post(urlEqualTo(path))
                 .willReturn(aResponse()
                         .withStatus(status)
                         .withHeader("Content-Type", "application/json")
                         .withBody(body)));
+    }
+
+    private void stubOrsHgv(int status, String body) {
+        stubOrs(ORS_HGV_PATH, status, body);
     }
 
     private static String fixture(String name) throws IOException {
@@ -153,14 +160,65 @@ class RouteApiIntegrationTest {
         mockMvc.perform(post(PLAN_URL)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(bodyNoStops()))
-            .andExpect(status().isOk())
-            .andExpect(jsonPath("$.profile").value("driving-car"))
-            .andExpect(jsonPath("$.distanceMeters").value(950))
-            .andExpect(jsonPath("$.durationSeconds").value(120))
-            .andExpect(jsonPath("$.geometry").value("_p~iF~ps|U_ulLnnqC"))
-            .andExpect(jsonPath("$.segments.length()").value(1))
-            .andExpect(jsonPath("$.segments[0].fromLabel").value("São Paulo"))
-            .andExpect(jsonPath("$.segments[0].toLabel").value("Rio de Janeiro"));
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.profile").value("driving-car"))
+                .andExpect(jsonPath("$.distanceMeters").value(950))
+                .andExpect(jsonPath("$.durationSeconds").value(120))
+                .andExpect(jsonPath("$.geometry").value("_p~iF~ps|U_ulLnnqC"))
+                .andExpect(jsonPath("$.segments.length()").value(1))
+                .andExpect(jsonPath("$.segments[0].fromLabel").value("São Paulo"))
+                .andExpect(jsonPath("$.segments[0].toLabel").value("Rio de Janeiro"));
+    }
+
+    // -----------------------------------------------------------------------
+    // KAN-28: praças casadas são persistidas no create e devolvidas no GET sem recomputar
+    // -----------------------------------------------------------------------
+
+    /** Praça sobre o primeiro vértice da geometria de teste (38.5, -120.2) → casa com a rota. */
+    private void seedTollPlazaOnRoute() {
+        tollPlazaRepository.save(TollPlaza.builder()
+                .concessionaria("Conc Teste")
+                .nome("Pedágio Vértice")
+                .rodovia("BR-116")
+                .uf("SP")
+                .kmM(BigDecimal.valueOf(160.500))
+                .sentido("Norte")
+                .latitude(38.5)
+                .longitude(-120.2)
+                .active(true)
+                .build());
+    }
+
+    @Test
+    void criar_persisteSnapshotDePracas_eGetRetornaSemRecomputar() throws Exception {
+        stubOrs(200, fixture("directions-single-segment.json"));
+        seedTollPlazaOnRoute();
+
+        MvcResult created = mockMvc.perform(post(BASE_URL)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(bodyNoStops()))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.tollPlazas.length()").value(1))
+                .andExpect(jsonPath("$.tollPlazas[0].nome").value("Pedágio Vértice"))
+                .andExpect(jsonPath("$.tollPlazas[0].km").value(160.5))
+                .andReturn();
+
+        String id = objectMapper.readTree(created.getResponse().getContentAsString())
+                .get("id").asText();
+
+        // Remove a praça da fonte: se o GET recalculasse, o snapshot sumiria. Como lê do snapshot,
+        // a praça persiste na resposta — prova de que o read não recomputa o matching.
+        tollPlazaRepository.deleteAll();
+
+        mockMvc.perform(get(BASE_URL + "/{id}", id))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.tollPlazas.length()").value(1))
+                .andExpect(jsonPath("$.tollPlazas[0].nome").value("Pedágio Vértice"));
+
+        mockMvc.perform(get(BASE_URL))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].tollPlazas.length()").value(1))
+                .andExpect(jsonPath("$[0].tollPlazas[0].nome").value("Pedágio Vértice"));
     }
 
     // -----------------------------------------------------------------------
@@ -174,45 +232,45 @@ class RouteApiIntegrationTest {
         MvcResult created = mockMvc.perform(post(BASE_URL)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(bodyTwoStops()))
-            .andExpect(status().isCreated())
-            .andExpect(header().string("Location", containsString(BASE_URL + "/")))
-            .andExpect(jsonPath("$.id").exists())
-            .andExpect(jsonPath("$.name").value("SP -> RJ"))
-            .andExpect(jsonPath("$.profile").value("driving-car"))
-            .andExpect(jsonPath("$.distanceMeters").value(3000))
-            .andExpect(jsonPath("$.durationSeconds").value(600))
-            .andExpect(jsonPath("$.geometry").value("_p~iF~ps|U_ulLnnqC_mqNvxq`@"))
-            .andExpect(jsonPath("$.stops.length()").value(2))
-            .andExpect(jsonPath("$.stops[0].label").value("Campinas"))
-            .andExpect(jsonPath("$.stops[1].label").value("São José dos Campos"))
-            .andReturn();
+                .andExpect(status().isCreated())
+                .andExpect(header().string("Location", containsString(BASE_URL + "/")))
+                .andExpect(jsonPath("$.id").exists())
+                .andExpect(jsonPath("$.name").value("SP -> RJ"))
+                .andExpect(jsonPath("$.profile").value("driving-car"))
+                .andExpect(jsonPath("$.distanceMeters").value(3000))
+                .andExpect(jsonPath("$.durationSeconds").value(600))
+                .andExpect(jsonPath("$.geometry").value("_p~iF~ps|U_ulLnnqC_mqNvxq`@"))
+                .andExpect(jsonPath("$.stops.length()").value(2))
+                .andExpect(jsonPath("$.stops[0].label").value("Campinas"))
+                .andExpect(jsonPath("$.stops[1].label").value("São José dos Campos"))
+                .andReturn();
 
         String id = objectMapper.readTree(created.getResponse().getContentAsString())
                 .get("id").asText();
 
         // Recuperar (GET) → 200 com paradas na ordem persistida
         mockMvc.perform(get(BASE_URL + "/{id}", id))
-            .andExpect(status().isOk())
-            .andExpect(jsonPath("$.id").value(id))
-            .andExpect(jsonPath("$.stops.length()").value(2))
-            .andExpect(jsonPath("$.stops[0].label").value("Campinas"))
-            .andExpect(jsonPath("$.stops[1].label").value("São José dos Campos"));
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(id))
+                .andExpect(jsonPath("$.stops.length()").value(2))
+                .andExpect(jsonPath("$.stops[0].label").value("Campinas"))
+                .andExpect(jsonPath("$.stops[1].label").value("São José dos Campos"));
 
         // Listar → 200 com a rota recém-criada
         mockMvc.perform(get(BASE_URL))
-            .andExpect(status().isOk())
-            .andExpect(jsonPath("$.length()").value(1))
-            .andExpect(jsonPath("$[0].id").value(id));
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].id").value(id));
 
         // Excluir → 204
         mockMvc.perform(delete(BASE_URL + "/{id}", id))
-            .andExpect(status().isNoContent())
-            .andExpect(content().string(""));
+                .andExpect(status().isNoContent())
+                .andExpect(content().string(""));
 
         // GET posterior → 404 ProblemDetail
         mockMvc.perform(get(BASE_URL + "/{id}", id))
-            .andExpect(status().isNotFound())
-            .andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON));
+                .andExpect(status().isNotFound())
+                .andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON));
     }
 
     // -----------------------------------------------------------------------
@@ -227,24 +285,24 @@ class RouteApiIntegrationTest {
         mockMvc.perform(post(PLAN_URL)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(bodyHgvNoStops()))
-            .andExpect(status().isOk())
-            .andExpect(jsonPath("$.profile").value("driving-hgv"));
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.profile").value("driving-hgv"));
 
         // Create → 201, persiste com driving-hgv
         MvcResult created = mockMvc.perform(post(BASE_URL)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(bodyHgvNoStops()))
-            .andExpect(status().isCreated())
-            .andExpect(jsonPath("$.profile").value("driving-hgv"))
-            .andReturn();
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.profile").value("driving-hgv"))
+                .andReturn();
 
         String id = objectMapper.readTree(created.getResponse().getContentAsString())
                 .get("id").asText();
 
         // GET → 200 com perfil driving-hgv persistido
         mockMvc.perform(get(BASE_URL + "/{id}", id))
-            .andExpect(status().isOk())
-            .andExpect(jsonPath("$.profile").value("driving-hgv"));
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.profile").value("driving-hgv"));
     }
 
     // -----------------------------------------------------------------------
@@ -263,8 +321,8 @@ class RouteApiIntegrationTest {
         mockMvc.perform(post(PLAN_URL)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(body))
-            .andExpect(status().isBadRequest())
-            .andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON));
+                .andExpect(status().isBadRequest())
+                .andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON));
     }
 
     // -----------------------------------------------------------------------
@@ -284,8 +342,8 @@ class RouteApiIntegrationTest {
         mockMvc.perform(post(PLAN_URL)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(body))
-            .andExpect(status().isBadRequest())
-            .andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON));
+                .andExpect(status().isBadRequest())
+                .andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON));
     }
 
     // -----------------------------------------------------------------------
@@ -299,8 +357,8 @@ class RouteApiIntegrationTest {
         mockMvc.perform(post(PLAN_URL)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(bodyNoStops()))
-            .andExpect(status().isServiceUnavailable())
-            .andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON));
+                .andExpect(status().isServiceUnavailable())
+                .andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON));
     }
 
     // -----------------------------------------------------------------------
@@ -314,7 +372,7 @@ class RouteApiIntegrationTest {
         mockMvc.perform(post(PLAN_URL)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(bodyNoStops()))
-            .andExpect(status().isServiceUnavailable())
-            .andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON));
+                .andExpect(status().isServiceUnavailable())
+                .andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON));
     }
 }
