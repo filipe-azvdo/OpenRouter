@@ -37,7 +37,9 @@ class TollPlazaImportWorkerTest {
     @Captor private ArgumentCaptor<TollPlazaImport> captor;
 
     private TollPlazaImportWorkerImpl newWorker() {
-        return new TollPlazaImportWorkerImpl(importRepository, parser, reconciliationService, objectMapper);
+        return new TollPlazaImportWorkerImpl(
+                importRepository, parser,
+                reconciliationService, objectMapper);
     }
 
     private static TollPlazaCsvRow row() {
@@ -47,13 +49,19 @@ class TollPlazaImportWorkerTest {
 
     @Test
     void happyPathMarksProcessingThenSuccessWithCounts() {
-        TollPlazaImportWorker worker = newWorker();
         UUID id = UUID.randomUUID();
-        TollPlazaImport job = TollPlazaImport.builder().id(id).contentHash("h").status(ImportStatus.PENDING).build();
-        when(importRepository.findById(id)).thenReturn(Optional.of(job));
-        when(importRepository.save(any(TollPlazaImport.class))).thenAnswer(i -> i.getArgument(0));
-        when(parser.parse(any())).thenReturn(new CsvParseResult(List.of(row()), List.of(), 1));
-        when(reconciliationService.reconcile(any())).thenReturn(new ReconciliationCounts(1, 0, 0, 0));
+        TollPlazaImport job = TollPlazaImport.builder()
+                .id(id).contentHash("h")
+                .status(ImportStatus.PENDING).build();
+        when(importRepository.findById(id))
+                .thenReturn(Optional.of(job));
+        when(importRepository.save(any(TollPlazaImport.class)))
+                .thenAnswer(i -> i.getArgument(0));
+        when(parser.parse(any()))
+                .thenReturn(new CsvParseResult(List.of(row()), List.of(), 1));
+        when(reconciliationService.reconcile(any()))
+                .thenReturn(new ReconciliationCounts(1, 0, 0));
+        TollPlazaImportWorker worker = newWorker();
 
         worker.process(id, new byte[] {1, 2, 3});
 
@@ -67,14 +75,20 @@ class TollPlazaImportWorkerTest {
 
     @Test
     void serializesRowErrorsIntoJob() throws Exception {
-        TollPlazaImportWorker worker = newWorker();
         UUID id = UUID.randomUUID();
-        TollPlazaImport job = TollPlazaImport.builder().id(id).contentHash("h").status(ImportStatus.PENDING).build();
-        when(importRepository.findById(id)).thenReturn(Optional.of(job));
-        when(importRepository.save(any(TollPlazaImport.class))).thenAnswer(i -> i.getArgument(0));
-        when(parser.parse(any())).thenReturn(
-                new CsvParseResult(List.of(row()), List.of(new RowError(2, "latitude inválido")), 2));
-        when(reconciliationService.reconcile(any())).thenReturn(new ReconciliationCounts(1, 0, 0, 0));
+        TollPlazaImport job = TollPlazaImport.builder()
+                .id(id).contentHash("h")
+                .status(ImportStatus.PENDING).build();
+        when(importRepository.findById(id))
+                .thenReturn(Optional.of(job));
+        when(importRepository.save(any(TollPlazaImport.class)))
+                .thenAnswer(i -> i.getArgument(0));
+        when(parser.parse(any())).thenReturn(new CsvParseResult(
+                List.of(row()),
+                List.of(new RowError(2, "latitude inválido")), 2));
+        when(reconciliationService.reconcile(any()))
+                .thenReturn(new ReconciliationCounts(1, 0, 0));
+        TollPlazaImportWorker worker = newWorker();
 
         worker.process(id, new byte[] {1});
 
@@ -85,13 +99,19 @@ class TollPlazaImportWorkerTest {
 
     @Test
     void reconciliationFailureMarksFailed() {
-        TollPlazaImportWorker worker = newWorker();
         UUID id = UUID.randomUUID();
-        TollPlazaImport job = TollPlazaImport.builder().id(id).contentHash("h").status(ImportStatus.PENDING).build();
-        when(importRepository.findById(id)).thenReturn(Optional.of(job));
-        when(importRepository.save(any(TollPlazaImport.class))).thenAnswer(i -> i.getArgument(0));
-        when(parser.parse(any())).thenReturn(new CsvParseResult(List.of(row()), List.of(), 1));
-        when(reconciliationService.reconcile(any())).thenThrow(new RuntimeException("boom"));
+        TollPlazaImport job = TollPlazaImport.builder()
+                .id(id).contentHash("h")
+                .status(ImportStatus.PENDING).build();
+        when(importRepository.findById(id))
+                .thenReturn(Optional.of(job));
+        when(importRepository.save(any(TollPlazaImport.class)))
+                .thenAnswer(i -> i.getArgument(0));
+        when(parser.parse(any()))
+                .thenReturn(new CsvParseResult(List.of(row()), List.of(), 1));
+        when(reconciliationService.reconcile(any()))
+                .thenThrow(new RuntimeException("boom"));
+        TollPlazaImportWorker worker = newWorker();
 
         worker.process(id, new byte[] {1});
 

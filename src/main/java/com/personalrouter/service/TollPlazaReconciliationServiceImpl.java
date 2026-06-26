@@ -61,18 +61,9 @@ public class TollPlazaReconciliationServiceImpl implements TollPlazaReconciliati
             }
         }
 
-        int deactivated = 0;
-        for (TollPlaza p : existing) {
-            if (p.isActive() && !seen.contains(p.naturalKey())) {
-                p.setActive(false);
-                repository.save(p);
-                deactivated++;
-            }
-        }
-
-        log.info("Reconciliação: +{} inseridas, {} reativadas, {} atualizadas, {} desativadas",
-                inserted, reactivated, updated, deactivated);
-        return new ReconciliationCounts(inserted, reactivated, updated, deactivated);
+        log.info("Reconciliação: +{} inseridas, {} reativadas, {} atualizadas",
+                inserted, reactivated, updated);
+        return new ReconciliationCounts(inserted, reactivated, updated);
     }
 
     private void apply(TollPlazaCsvRow row, TollPlaza plaza) {

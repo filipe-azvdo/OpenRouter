@@ -18,7 +18,7 @@ class TollPlazaImportMapperTest {
         UUID id = UUID.randomUUID();
         TollPlazaImport entity = TollPlazaImport.builder()
                 .id(id).contentHash("abc").status(ImportStatus.SUCCESS)
-                .inserted(5).reactivated(1).updated(2).deactivated(3).totalRows(11)
+                .inserted(5).reactivated(1).updated(2).totalRows(11)
                 .errors(null)
                 .build();
 

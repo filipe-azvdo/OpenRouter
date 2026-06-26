@@ -43,9 +43,9 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     @ExceptionHandler(OpenRouteServiceException.class)
     public ResponseEntity<ProblemDetail> handleOpenRouteService(OpenRouteServiceException ex) {
         log.error("OpenRouteService error: {}", ex.getMessage(), ex);
-        ProblemDetail pd =
-                ProblemDetail.forStatusAndDetail(
-                        HttpStatus.SERVICE_UNAVAILABLE, "Routing service is currently unavailable.");
+        ProblemDetail pd = ProblemDetail.forStatusAndDetail(
+                HttpStatus.SERVICE_UNAVAILABLE,
+                "Routing service is currently unavailable.");
         pd.setTitle("Service Unavailable");
         return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
                 .contentType(MediaType.APPLICATION_PROBLEM_JSON)
@@ -58,13 +58,16 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
             HttpHeaders headers,
             HttpStatusCode status,
             WebRequest request) {
-        log.warn("Validation failed: {} constraint violation(s) on {}", ex.getErrorCount(), ex.getObjectName());
-        ProblemDetail pd =
-                ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, "Request validation failed.");
+        log.warn("Validation failed: {} constraint violation(s) on {}",
+                ex.getErrorCount(), ex.getObjectName());
+        ProblemDetail pd = ProblemDetail.forStatusAndDetail(
+                HttpStatus.BAD_REQUEST, "Request validation failed.");
         pd.setTitle("Validation Error");
         List<Map<String, String>> errors =
                 ex.getBindingResult().getFieldErrors().stream()
-                        .map(fe -> Map.of("field", fe.getField(), "message", String.valueOf(fe.getDefaultMessage())))
+                        .map(fe -> Map.of(
+                                "field", fe.getField(),
+                                "message", String.valueOf(fe.getDefaultMessage())))
                         .toList();
         pd.setProperty("errors", errors);
         HttpHeaders responseHeaders = new HttpHeaders();
@@ -75,9 +78,20 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     @ExceptionHandler(InvalidCsvException.class)
     public ResponseEntity<ProblemDetail> handleInvalidCsv(InvalidCsvException ex) {
         log.warn("CSV inválido: {}", ex.getMessage());
-        ProblemDetail pd = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, ex.getMessage());
+        ProblemDetail pd = ProblemDetail.forStatusAndDetail(
+                HttpStatus.BAD_REQUEST, ex.getMessage());
         pd.setTitle("Invalid CSV");
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .contentType(MediaType.APPLICATION_PROBLEM_JSON)
+                .body(pd);
+    }
+
+    @ExceptionHandler(TollPlazaNotFoundException.class)
+    public ResponseEntity<ProblemDetail> handleTollPlazaNotFound(TollPlazaNotFoundException ex) {
+        log.warn("Praça não encontrada: {}", ex.getMessage());
+        ProblemDetail pd = ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, ex.getMessage());
+        pd.setTitle("Toll Plaza Not Found");
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
                 .contentType(MediaType.APPLICATION_PROBLEM_JSON)
                 .body(pd);
     }

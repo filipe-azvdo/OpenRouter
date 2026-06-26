@@ -92,20 +92,15 @@ class TollPlazaImportIntegrationTest {
     }
 
     @Test
-    void reuploadSemPraca_softDelete_eReintroducao_reativa() throws Exception {
+    void reuploadSemPraca_naoDesativa() throws Exception {
         String id1 = uploadExpectingAccepted("csv/three-plazas.csv");
         awaitImportDone(id1);
 
         String id2 = uploadExpectingAccepted("csv/two-plazas.csv");
         awaitImportDone(id2);
-        org.assertj.core.api.Assertions.assertThat(
-                plazaRepository.findAll()).filteredOn(p -> !p.isActive()).hasSize(1);
 
-        importRepository.deleteAll();
-        String id3 = uploadExpectingAccepted("csv/three-plazas.csv");
-        awaitImportDone(id3);
         org.assertj.core.api.Assertions.assertThat(
-                plazaRepository.findAll()).filteredOn(p -> p.isActive()).hasSize(2);
+                plazaRepository.findAll()).allMatch(p -> p.isActive());
     }
 
     @Test
@@ -121,14 +116,16 @@ class TollPlazaImportIntegrationTest {
     @Test
     void arquivoNaoUtf8_retorna400() throws Exception {
         byte[] invalidUtf8 = new byte[] {(byte) 0xFF, (byte) 0xFE, 0x41, 0x42};
-        MockMultipartFile bad = new MockMultipartFile("file", "latin1.csv", "text/csv", invalidUtf8);
+        MockMultipartFile bad = new MockMultipartFile(
+                "file", "latin1.csv", "text/csv", invalidUtf8);
         mockMvc.perform(multipart("/api/v1/toll-plazas/import").file(bad))
                 .andExpect(status().isBadRequest());
     }
 
     @Test
     void reuploadAposFalha_criaNovoImport_eReprocessa() throws Exception {
-        byte[] bytes = new ClassPathResource("csv/three-plazas.csv").getInputStream().readAllBytes();
+        byte[] bytes = new ClassPathResource("csv/three-plazas.csv")
+                .getInputStream().readAllBytes();
         String hash = ContentHash.sha256Hex(bytes);
 
         TollPlazaImport failed = TollPlazaImport.builder()

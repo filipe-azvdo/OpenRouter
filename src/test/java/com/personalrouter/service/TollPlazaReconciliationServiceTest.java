@@ -40,7 +40,7 @@ class TollPlazaReconciliationServiceTest extends AbstractPersistenceTest {
                 row("BR-381", "900.9", "Crescente", "A"),
                 row("BR-116", "210.0", "Norte", "B")));
 
-        assertThat(c).isEqualTo(new ReconciliationCounts(2, 0, 0, 0));
+        assertThat(c).isEqualTo(new ReconciliationCounts(2, 0, 0));
         assertThat(repository.findAll()).allMatch(TollPlaza::isActive);
     }
 
@@ -50,26 +50,38 @@ class TollPlazaReconciliationServiceTest extends AbstractPersistenceTest {
         service.reconcile(rows);
         ReconciliationCounts c = service.reconcile(rows);
 
-        assertThat(c).isEqualTo(new ReconciliationCounts(0, 0, 1, 0));
+        assertThat(c).isEqualTo(new ReconciliationCounts(0, 0, 1));
         assertThat(repository.findAll()).hasSize(1);
     }
 
     @Test
-    void absentRowIsSoftDeleted_andReintroducedIsReactivatedWithoutDuplicate() {
+    void absentRowStaysActive() {
         service.reconcile(List.of(
                 row("BR-381", "900.9", "Crescente", "A"),
                 row("BR-116", "210.0", "Norte", "B")));
 
-        ReconciliationCounts c1 = service.reconcile(List.of(row("BR-381", "900.9", "Crescente", "A")));
-        assertThat(c1.deactivated()).isEqualTo(1);
-        assertThat(repository.findAll()).filteredOn(p -> !p.isActive()).hasSize(1);
+        ReconciliationCounts c = service.reconcile(
+                List.of(row("BR-381", "900.9", "Crescente", "A")));
 
-        ReconciliationCounts c2 = service.reconcile(List.of(
-                row("BR-381", "900.9", "Crescente", "A"),
-                row("BR-116", "210.0", "Norte", "B")));
-        assertThat(c2.reactivated()).isEqualTo(1);
-        assertThat(repository.findAll()).hasSize(2);
-        assertThat(repository.findAll()).allMatch(TollPlaza::isActive);
+        assertThat(c).isEqualTo(new ReconciliationCounts(0, 0, 1));
+        assertThat(repository.findAll()).hasSize(2)
+                .allMatch(TollPlaza::isActive);
+    }
+
+    @Test
+    void reintroducedAfterManualDeactivationIsReactivated() {
+        service.reconcile(
+                List.of(row("BR-381", "900.9", "Crescente", "A")));
+
+        TollPlaza plaza = repository.findAll().get(0);
+        plaza.setActive(false);
+        repository.save(plaza);
+
+        ReconciliationCounts c = service.reconcile(
+                List.of(row("BR-381", "900.9", "Crescente", "A")));
+
+        assertThat(c.reactivated()).isEqualTo(1);
+        assertThat(repository.findAll()).hasSize(1).allMatch(TollPlaza::isActive);
     }
 
     @Test

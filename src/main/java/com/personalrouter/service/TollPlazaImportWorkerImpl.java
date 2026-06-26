@@ -45,7 +45,6 @@ public class TollPlazaImportWorkerImpl implements TollPlazaImportWorker {
             job.setInserted(counts.inserted());
             job.setReactivated(counts.reactivated());
             job.setUpdated(counts.updated());
-            job.setDeactivated(counts.deactivated());
             job.setTotalRows(parsed.totalRows());
             job.setErrors(serialize(parsed.errors()));
             job.setStatus(ImportStatus.SUCCESS);

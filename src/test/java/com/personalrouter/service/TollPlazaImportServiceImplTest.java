@@ -42,7 +42,8 @@ class TollPlazaImportServiceImplTest {
         org.mockito.Mockito.doThrow(new InvalidCsvException("vazio"))
                 .when(parser).validateStructure(any());
 
-        assertThatThrownBy(() -> service.importCsv(CONTENT)).isInstanceOf(InvalidCsvException.class);
+        assertThatThrownBy(() -> service.importCsv(CONTENT))
+                .isInstanceOf(InvalidCsvException.class);
         verify(importRepository, never()).save(any());
         verify(events, never()).publishEvent(any());
     }
@@ -64,7 +65,8 @@ class TollPlazaImportServiceImplTest {
 
     @Test
     void newHashCreatesPendingJobAndPublishesEvent() {
-        when(importRepository.findFirstByContentHashAndStatusIn(any(), any())).thenReturn(Optional.empty());
+        when(importRepository.findFirstByContentHashAndStatusIn(
+                any(), any())).thenReturn(Optional.empty());
         when(importRepository.save(any(TollPlazaImport.class))).thenAnswer(i -> {
             TollPlazaImport j = i.getArgument(0);
             ReflectionTestUtils.setField(j, "id", UUID.randomUUID());
@@ -89,6 +91,6 @@ class TollPlazaImportServiceImplTest {
 
     private static TollPlazaImportResultDto dto(TollPlazaImport e) {
         return new TollPlazaImportResultDto(e.getId(), e.getStatus().name(), e.getContentHash(),
-                null, null, null, null, null, List.of(), null, null);
+                null, null, null, null, List.of(), null, null);
     }
 }
