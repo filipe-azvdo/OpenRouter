@@ -9,8 +9,8 @@ spring:
       max-file-size: 10MB
       max-request-size: 10MB
   datasource:
-    url: jdbc:postgresql://${DB_HOST:db.prisma.io}:${DB_PORT:5432}/${DB_NAME:postgres}?sslmode=require
-    username: ${DB_USERNAME:525c430e011f63f61133e141bdee4566724f54dd6e9d70c8de66cf54a8f96932}
+    url: jdbc:postgresql://${DB_HOST}:${DB_PORT:5432}/${DB_NAME:postgres}?sslmode=require
+    username: ${DB_USERNAME}
     password: ${DB_PASSWORD}
     driver-class-name: org.postgresql.Driver
     hikari:
