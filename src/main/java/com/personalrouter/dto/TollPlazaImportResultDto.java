@@ -11,7 +11,6 @@ public record TollPlazaImportResultDto(
         Integer inserted,
         Integer reactivated,
         Integer updated,
-        Integer deactivated,
         Integer totalRows,
         List<RowError> errors,
         Instant createdAt,

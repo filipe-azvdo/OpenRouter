@@ -7,9 +7,9 @@ import java.util.List;
 public interface TollPlazaReconciliationService {
 
     /** Resultado agregado da reconciliação. */
-    record ReconciliationCounts(int inserted, int reactivated, int updated, int deactivated) {
+    record ReconciliationCounts(int inserted, int reactivated, int updated) {
     }
 
-    /** Executa a reconciliação (insert / reactivate / update / deactivate). */
+    /** Executa a reconciliação (insert / reactivate / update). */
     ReconciliationCounts reconcile(List<TollPlazaCsvRow> rows);
 }

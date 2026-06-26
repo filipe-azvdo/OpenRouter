@@ -43,8 +43,6 @@ public class TollPlazaImport {
 
     private Integer updated;
 
-    private Integer deactivated;
-
     @Column(name = "total_rows")
     private Integer totalRows;
 
